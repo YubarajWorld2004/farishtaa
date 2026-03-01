@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Hide scrollbar but keep scroll functionality */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+*::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
+.theme-bg{
+  font-family: "Times New Roman";
+  font-optical-sizing: auto;
+  font-style: normal;
+  background : linear-gradient(
+    to bottom,
+     #fee2e2,
+      #fc8181
+  );
+}
+
+.dark .theme-bg {
+  background: linear-gradient(
+    to bottom,
+    #1f2937,
+    #111827
+  );
+}
+
+/* Floating chat widget animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
