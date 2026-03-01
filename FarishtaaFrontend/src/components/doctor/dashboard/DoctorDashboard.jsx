@@ -20,10 +20,10 @@ const DoctorDashboard = () => {
     const fetchData = async () => {
       try {
         const [profileRes, statsRes] = await Promise.all([
-          fetch("http://localhost:3001/api/doctor-dashboard/profile", {
+          fetch("https://farishtaa-backend.vercel.app/api/doctor-dashboard/profile", {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch("http://localhost:3001/api/doctor-dashboard/stats", {
+          fetch("https://farishtaa-backend.vercel.app/api/doctor-dashboard/stats", {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);

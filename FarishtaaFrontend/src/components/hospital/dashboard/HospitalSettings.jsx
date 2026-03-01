@@ -15,7 +15,7 @@ const HospitalSettings = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch("http://localhost:3001/api/hospital-dashboard/profile", {
+        const res = await fetch("https://farishtaa-backend.vercel.app/api/hospital-dashboard/profile", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -48,7 +48,7 @@ const HospitalSettings = () => {
 
     try {
       setSaving(true);
-      const res = await fetch("http://localhost:3001/api/hospital-dashboard/profile", {
+      const res = await fetch("https://farishtaa-backend.vercel.app/api/hospital-dashboard/profile", {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,

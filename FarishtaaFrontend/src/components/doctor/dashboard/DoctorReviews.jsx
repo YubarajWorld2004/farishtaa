@@ -10,7 +10,7 @@ const DoctorReviews = () => {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const res = await fetch("http://localhost:3001/api/doctor-dashboard/reviews", {
+        const res = await fetch("https://farishtaa-backend.vercel.app/api/doctor-dashboard/reviews", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

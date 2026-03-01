@@ -82,7 +82,7 @@ const AISymptomsChecker = () => {
       try {
         dispatch(setLoading(true));
         const res = await fetch(
-          `http://localhost:3001/api/patient/symptoms/${userId}/${sessionId}`,
+          `https://farishtaa-backend.vercel.app/api/patient/symptoms/${userId}/${sessionId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -151,7 +151,7 @@ const AISymptomsChecker = () => {
 
     try {
       const res = await fetch(
-        `http://localhost:3001/api/patient/sessions/${userId}`,
+        `https://farishtaa-backend.vercel.app/api/patient/sessions/${userId}`,
         {
           method: "POST",
           headers: {
@@ -196,7 +196,7 @@ const AISymptomsChecker = () => {
       dispatch(addMessage({ role: "patient", content: text }));
 
       const res = await fetch(
-        `http://localhost:3001/api/patient/symptoms/${userId}/${currentSessionId}`,
+        `https://farishtaa-backend.vercel.app/api/patient/symptoms/${userId}/${currentSessionId}`,
         {
           method: "POST",
           headers: {

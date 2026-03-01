@@ -57,7 +57,7 @@ const AddDoctor = () => {
 
     try {
       setSubmitting(true);
-      const res = await fetch("http://localhost:3001/api/hospital-dashboard/doctors", {
+      const res = await fetch("https://farishtaa-backend.vercel.app/api/hospital-dashboard/doctors", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

@@ -85,7 +85,7 @@ const FloatingChatWidget = ({ onClose }) => {
     const fetchSessions = async () => {
       try {
         const res = await fetch(
-          `http://localhost:3001/api/patient/sessions/${userId}`,
+          `https://farishtaa-backend.vercel.app/api/patient/sessions/${userId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!res.ok) return;
@@ -105,7 +105,7 @@ const FloatingChatWidget = ({ onClose }) => {
       try {
         dispatch(setLoading(true));
         const res = await fetch(
-          `http://localhost:3001/api/patient/symptoms/${userId}/${activeSessionId}`,
+          `https://farishtaa-backend.vercel.app/api/patient/symptoms/${userId}/${activeSessionId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const data = await res.json();
@@ -166,7 +166,7 @@ const FloatingChatWidget = ({ onClose }) => {
     if (activeSessionId) return activeSessionId;
     try {
       const res = await fetch(
-        `http://localhost:3001/api/patient/sessions/${userId}`,
+        `https://farishtaa-backend.vercel.app/api/patient/sessions/${userId}`,
         {
           method: "POST",
           headers: {
@@ -204,7 +204,7 @@ const FloatingChatWidget = ({ onClose }) => {
       dispatch(addMessage({ role: "patient", content: text }));
 
       const res = await fetch(
-        `http://localhost:3001/api/patient/symptoms/${userId}/${currentSessionId}`,
+        `https://farishtaa-backend.vercel.app/api/patient/symptoms/${userId}/${currentSessionId}`,
         {
           method: "POST",
           headers: {
@@ -256,7 +256,7 @@ const FloatingChatWidget = ({ onClose }) => {
   const handleNewChat = async () => {
     try {
       const res = await fetch(
-        `http://localhost:3001/api/patient/sessions/${userId}`,
+        `https://farishtaa-backend.vercel.app/api/patient/sessions/${userId}`,
         {
           method: "POST",
           headers: {
@@ -285,7 +285,7 @@ const FloatingChatWidget = ({ onClose }) => {
     e.stopPropagation();
     try {
       await fetch(
-        `http://localhost:3001/api/patient/sessions/${userId}/${sessionId}`,
+        `https://farishtaa-backend.vercel.app/api/patient/sessions/${userId}/${sessionId}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },

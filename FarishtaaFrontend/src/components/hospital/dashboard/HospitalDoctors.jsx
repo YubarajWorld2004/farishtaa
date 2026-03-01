@@ -18,7 +18,7 @@ const HospitalDoctors = () => {
 
   const fetchDoctors = async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/hospital-dashboard/doctors", {
+      const res = await fetch("https://farishtaa-backend.vercel.app/api/hospital-dashboard/doctors", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -36,7 +36,7 @@ const HospitalDoctors = () => {
 
   const handleRemoveDoctor = async (doctorId) => {
     try {
-      await fetch(`http://localhost:3001/api/hospital-dashboard/doctors/${doctorId}`, {
+      await fetch(`https://farishtaa-backend.vercel.app/api/hospital-dashboard/doctors/${doctorId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
