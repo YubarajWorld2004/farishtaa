@@ -28,7 +28,7 @@ exports.updateDoctorProfile = async (req, res) => {
   try {
     const {
       specialist, experience, degree, languages,
-      about, address, photoUrl, location, mapLink, fee,
+      about, address, photoUrl, location, mapLink, fee, clinicName,
     } = req.body;
 
     const updateData = {};
@@ -39,9 +39,16 @@ exports.updateDoctorProfile = async (req, res) => {
     if (about) updateData.about = about;
     if (address) updateData.address = address;
     if (photoUrl) updateData.photoUrl = photoUrl;
-    if (location) updateData.location = location;
+    if (location && location.coordinates) updateData.location = location;
     if (mapLink !== undefined) updateData.mapLink = mapLink;
     if (fee !== undefined) updateData.fee = fee;
+
+    // Only allow clinicName edit if the doctor was NOT added by a hospital
+    const currentDoctor = await User.findById(req.userId).select('addedByHospital');
+    if (clinicName !== undefined && !currentDoctor?.addedByHospital) {
+      updateData.clinicName = clinicName;
+    }
+
     updateData.profileCompleted = true;
 
     const doctor = await User.findByIdAndUpdate(req.userId, updateData, {

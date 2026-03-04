@@ -24,6 +24,7 @@ const DoctorProfileEdit = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isHospitalDoctor, setIsHospitalDoctor] = useState(false);
 
   const [form, setForm] = useState({
     specialist: "",
@@ -35,7 +36,11 @@ const DoctorProfileEdit = () => {
     photoUrl: "",
     mapLink: "",
     fee: "",
+    latitude: "",
+    longitude: "",
+    clinicName: "",
   });
+  const [geoLoading, setGeoLoading] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -55,7 +60,11 @@ const DoctorProfileEdit = () => {
           photoUrl: d.photoUrl || "",
           mapLink: d.mapLink || "",
           fee: d.fee || "",
+          latitude: d.location?.coordinates?.[1]?.toString() || "",
+          longitude: d.location?.coordinates?.[0]?.toString() || "",
+          clinicName: d.clinicName || "",
         });
+        setIsHospitalDoctor(!!d.addedByHospital);
       } catch (err) {
         console.error("Failed to load profile:", err);
       } finally {
@@ -96,6 +105,10 @@ const DoctorProfileEdit = () => {
           ...form,
           experience: form.experience ? Number(form.experience) : undefined,
           fee: form.fee ? Number(form.fee) : undefined,
+          location: form.latitude && form.longitude ? {
+            type: "Point",
+            coordinates: [Number(form.longitude), Number(form.latitude)],
+          } : undefined,
         }),
       });
 
@@ -206,6 +219,20 @@ const DoctorProfileEdit = () => {
                 placeholder="e.g. MBBS, MD"
               />
             </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">Clinic / Hospital Name</label>
+              <input
+                type="text"
+                value={form.clinicName}
+                onChange={(e) => handleChange("clinicName", e.target.value)}
+                disabled={isHospitalDoctor}
+                className={`w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:border-red-400 transition ${isHospitalDoctor ? "opacity-60 cursor-not-allowed" : ""}`}
+                placeholder="e.g. City Care Hospital"
+              />
+              {isHospitalDoctor && (
+                <p className="text-xs text-amber-500 dark:text-amber-400 mt-1">This field is managed by your hospital and cannot be edited.</p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -255,6 +282,47 @@ const DoctorProfileEdit = () => {
               className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:border-red-400 transition"
               placeholder="Full address"
             />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">Clinic Location (Coordinates)</label>
+            <div className="flex gap-3 mt-1">
+              <input
+                type="number"
+                value={form.latitude}
+                onChange={(e) => handleChange("latitude", e.target.value)}
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:border-red-400 transition"
+                placeholder="Latitude (e.g. 19.9158)"
+                step="any"
+              />
+              <input
+                type="number"
+                value={form.longitude}
+                onChange={(e) => handleChange("longitude", e.target.value)}
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:border-red-400 transition"
+                placeholder="Longitude (e.g. 83.1050)"
+                step="any"
+              />
+            </div>
+            <button
+              type="button"
+              disabled={geoLoading}
+              onClick={() => {
+                setGeoLoading(true);
+                navigator.geolocation.getCurrentPosition(
+                  (pos) => {
+                    handleChange("latitude", pos.coords.latitude.toString());
+                    handleChange("longitude", pos.coords.longitude.toString());
+                    setGeoLoading(false);
+                  },
+                  () => { setGeoLoading(false); }
+                );
+              }}
+              className="mt-2 text-xs text-red-600 dark:text-red-400 hover:underline font-medium"
+            >
+              {geoLoading ? "Getting location..." : "📍 Use current location"}
+            </button>
+            <p className="text-xs text-gray-400 mt-1">Required for nearby search. You can use the button above or enter manually.</p>
           </div>
 
           <div>

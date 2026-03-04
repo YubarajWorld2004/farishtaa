@@ -110,7 +110,7 @@ exports.addDoctor = async (req, res) => {
     const {
       firstName, lastName, email, password,
       specialist, experience, degree, languages,
-      about, address, photoUrl, availability, mapLink, fee,
+      about, address, photoUrl, availability, mapLink, fee, location,
     } = req.body;
 
     // Validate required fields
@@ -123,6 +123,10 @@ exports.addDoctor = async (req, res) => {
     if (existing) {
       return res.status(422).json({ message: 'A user with this email already exists' });
     }
+
+    // Fetch hospital name to auto-set clinicName
+    const hospital = await User.findById(req.userId).select('hospitalName firstName');
+    const hospitalClinicName = hospital?.hospitalName || hospital?.firstName || '';
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -141,7 +145,10 @@ exports.addDoctor = async (req, res) => {
       photoUrl: photoUrl || '',
       mapLink: mapLink || '',
       fee: fee || undefined,
+      clinicName: hospitalClinicName,
+      addedByHospital: req.userId,
       availability: availability || [],
+      location: location && location.coordinates ? location : undefined,
       profileCompleted: !!(specialist && experience && degree),
     });
 

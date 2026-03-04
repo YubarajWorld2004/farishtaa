@@ -164,6 +164,12 @@ const DoctorByCategory = () => {
                         {doctor.specialist}
                       </p>
 
+                      {doctor.clinicName && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {doctor.clinicName}
+                        </p>
+                      )}
+
                       {doctor.degree && (
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                           {doctor.degree}

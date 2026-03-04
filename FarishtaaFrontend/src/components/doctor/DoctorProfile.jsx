@@ -166,7 +166,7 @@ const DoctorProfile = () => {
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{doctor.name}</h1>
 
               <p className="text-sm text-red-500 dark:text-red-400 font-medium mt-1">
-                {doctor.type === "clinic" ? t('doctorProfile.clinic') : t('doctorProfile.hospitalPractice')}
+                {doctor.clinicName || (doctor.type === "clinic" ? t('doctorProfile.clinic') : t('doctorProfile.hospitalPractice'))}
               </p>
 
               {/* Specialists */}
