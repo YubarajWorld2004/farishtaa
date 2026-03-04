@@ -193,14 +193,20 @@ const DoctorProfile = () => {
                   <FaMapMarkerAlt className="text-red-400" size={12} />
                   <span className="truncate max-w-[200px] sm:max-w-xs">{address}</span>
                 </span>
+
+                {doctor.fee != null && doctor.fee > 0 && (
+                  <span className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-0.5 rounded-full">
+                    ₹{doctor.fee}
+                  </span>
+                )}
               </div>
 
               {/* Direction button */}
-              {doctor.location?.coordinates && (
+              {(doctor.mapLink || doctor.location?.coordinates) && (
                 <button
                   onClick={() =>
                     window.open(
-                      `https://www.google.com/maps/dir/?api=1&destination=${doctor.location.coordinates[1]},${doctor.location.coordinates[0]}`,
+                      doctor.mapLink || `https://www.google.com/maps/dir/?api=1&destination=${doctor.location.coordinates[1]},${doctor.location.coordinates[0]}`,
                       "_blank"
                     )
                   }

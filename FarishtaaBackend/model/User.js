@@ -20,6 +20,8 @@ languages : {type : [String]},
 about : {type : String},
 address : {type : String},
 photoUrl : {type : String},
+mapLink : {type : String},
+fee : {type : Number},
 availability : [{
   day : {type : String, enum : ['All Days','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']},
   startTime : {type : String},

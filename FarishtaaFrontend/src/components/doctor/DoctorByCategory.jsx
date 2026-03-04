@@ -19,12 +19,18 @@ const DoctorByCategory = () => {
 
   const formatDistance = (d) => (d ? (d / 1000).toFixed(1) : null);
 
-  const openDirections = (e, lat, lng) => {
+  const openDirections = (e, doctor) => {
     e.stopPropagation();
-    window.open(
-      `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-      "_blank"
-    );
+    if (doctor.mapLink) {
+      window.open(doctor.mapLink, "_blank");
+    } else if (doctor.location?.coordinates) {
+      const lat = doctor.location.coordinates[1];
+      const lng = doctor.location.coordinates[0];
+      window.open(
+        `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+        "_blank"
+      );
+    }
   };
 
   useEffect(() => {
@@ -178,6 +184,12 @@ const DoctorByCategory = () => {
                             {formatDistance(doctor.distance)} km
                           </span>
                         )}
+
+                        {doctor.fee != null && doctor.fee > 0 && (
+                          <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-0.5 rounded-full">
+                            ₹{doctor.fee}
+                          </span>
+                        )}
                       </div>
 
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 truncate">
@@ -198,13 +210,7 @@ const DoctorByCategory = () => {
                       </button>
 
                       <button
-                        onClick={(e) =>
-                          openDirections(
-                            e,
-                            doctor.location.coordinates[1],
-                            doctor.location.coordinates[0]
-                          )
-                        }
+                        onClick={(e) => openDirections(e, doctor)}
                         className="px-3 sm:px-5 py-2 sm:py-2.5 border border-gray-200 dark:border-gray-600 text-xs sm:text-sm text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500 transition-all flex items-center justify-center gap-1.5"
                       >
                         <FaDirections size={13} />

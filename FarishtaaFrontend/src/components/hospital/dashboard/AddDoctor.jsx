@@ -32,7 +32,7 @@ const AddDoctor = () => {
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", password: "",
     specialist: "", experience: "", degree: "",
-    languages: "", about: "", address: "", photoUrl: "",
+    languages: "", about: "", address: "", photoUrl: "", mapLink: "", fee: "",
   });
   const [availability, setAvailability] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -67,6 +67,7 @@ const AddDoctor = () => {
         body: JSON.stringify({
           ...form,
           experience: form.experience ? Number(form.experience) : undefined,
+          fee: form.fee ? Number(form.fee) : undefined,
           languages: form.languages ? form.languages.split(",").map((l) => l.trim()) : [],
           availability,
         }),
@@ -83,7 +84,7 @@ const AddDoctor = () => {
       setForm({
         firstName: "", lastName: "", email: "", password: "",
         specialist: "", experience: "", degree: "",
-        languages: "", about: "", address: "", photoUrl: "",
+        languages: "", about: "", address: "", photoUrl: "", mapLink: "", fee: "",
       });
       setAvailability([]);
 
@@ -236,6 +237,26 @@ const AddDoctor = () => {
             type="text" name="address" value={form.address} onChange={handleChange}
             placeholder="Clinic / hospital address" className={inputClass}
           />
+        </div>
+
+        {/* Consultation Fee */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Consultation Fee (₹)</label>
+          <input
+            type="number" name="fee" value={form.fee} onChange={handleChange}
+            placeholder="e.g. 500" min="0" className={inputClass}
+          />
+          <p className="text-xs text-gray-400 mt-1">Minimum / prescribed consultation fee in INR</p>
+        </div>
+
+        {/* Google Maps Link */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Google Maps Link</label>
+          <input
+            type="url" name="mapLink" value={form.mapLink} onChange={handleChange}
+            placeholder="https://maps.google.com/..." className={inputClass}
+          />
+          <p className="text-xs text-gray-400 mt-1">Paste the Google Maps link for the doctor's clinic. Patients will use this for directions.</p>
         </div>
 
         {/* Photo URL */}

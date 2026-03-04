@@ -110,7 +110,7 @@ exports.addDoctor = async (req, res) => {
     const {
       firstName, lastName, email, password,
       specialist, experience, degree, languages,
-      about, address, photoUrl, availability,
+      about, address, photoUrl, availability, mapLink, fee,
     } = req.body;
 
     // Validate required fields
@@ -139,6 +139,8 @@ exports.addDoctor = async (req, res) => {
       about: about || '',
       address: address || '',
       photoUrl: photoUrl || '',
+      mapLink: mapLink || '',
+      fee: fee || undefined,
       availability: availability || [],
       profileCompleted: !!(specialist && experience && degree),
     });

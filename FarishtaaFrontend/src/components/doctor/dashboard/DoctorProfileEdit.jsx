@@ -33,6 +33,8 @@ const DoctorProfileEdit = () => {
     about: "",
     address: "",
     photoUrl: "",
+    mapLink: "",
+    fee: "",
   });
 
   useEffect(() => {
@@ -51,6 +53,8 @@ const DoctorProfileEdit = () => {
           about: d.about || "",
           address: d.address || "",
           photoUrl: d.photoUrl || "",
+          mapLink: d.mapLink || "",
+          fee: d.fee || "",
         });
       } catch (err) {
         console.error("Failed to load profile:", err);
@@ -91,6 +95,7 @@ const DoctorProfileEdit = () => {
         body: JSON.stringify({
           ...form,
           experience: form.experience ? Number(form.experience) : undefined,
+          fee: form.fee ? Number(form.fee) : undefined,
         }),
       });
 
@@ -170,6 +175,17 @@ const DoctorProfileEdit = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">Consultation Fee (₹)</label>
+              <input
+                type="number"
+                min="0"
+                value={form.fee}
+                onChange={(e) => handleChange("fee", e.target.value)}
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:border-red-400 transition"
+                placeholder="e.g. 500"
+              />
+            </div>
+            <div>
               <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">Years of Experience</label>
               <input
                 type="number"
@@ -239,6 +255,18 @@ const DoctorProfileEdit = () => {
               className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:border-red-400 transition"
               placeholder="Full address"
             />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">Google Maps Link</label>
+            <input
+              type="url"
+              value={form.mapLink}
+              onChange={(e) => handleChange("mapLink", e.target.value)}
+              className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:border-red-400 transition"
+              placeholder="https://maps.google.com/..."
+            />
+            <p className="text-xs text-gray-400 mt-1">Paste your Google Maps link so patients can get directions to your clinic.</p>
           </div>
         </div>
 
