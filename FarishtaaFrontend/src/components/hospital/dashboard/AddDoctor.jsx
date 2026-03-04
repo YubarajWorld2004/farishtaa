@@ -33,10 +33,12 @@ const AddDoctor = () => {
     firstName: "", lastName: "", email: "", password: "",
     specialist: "", experience: "", degree: "",
     languages: "", about: "", address: "", photoUrl: "", mapLink: "", fee: "",
+    latitude: "", longitude: "",
   });
   const [availability, setAvailability] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -70,6 +72,10 @@ const AddDoctor = () => {
           fee: form.fee ? Number(form.fee) : undefined,
           languages: form.languages ? form.languages.split(",").map((l) => l.trim()) : [],
           availability,
+          location: form.latitude && form.longitude ? {
+            type: "Point",
+            coordinates: [Number(form.longitude), Number(form.latitude)],
+          } : undefined,
         }),
       });
 
@@ -85,6 +91,7 @@ const AddDoctor = () => {
         firstName: "", lastName: "", email: "", password: "",
         specialist: "", experience: "", degree: "",
         languages: "", about: "", address: "", photoUrl: "", mapLink: "", fee: "",
+        latitude: "", longitude: "",
       });
       setAvailability([]);
 
@@ -247,6 +254,39 @@ const AddDoctor = () => {
             placeholder="e.g. 500" min="0" className={inputClass}
           />
           <p className="text-xs text-gray-400 mt-1">Minimum / prescribed consultation fee in INR</p>
+        </div>
+
+        {/* Location Coordinates */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Clinic Location (Coordinates)</label>
+          <div className="flex gap-3 mt-1">
+            <input
+              type="number" name="latitude" value={form.latitude} onChange={handleChange}
+              placeholder="Latitude (e.g. 19.9158)" step="any" className={inputClass}
+            />
+            <input
+              type="number" name="longitude" value={form.longitude} onChange={handleChange}
+              placeholder="Longitude (e.g. 83.1050)" step="any" className={inputClass}
+            />
+          </div>
+          <button
+            type="button"
+            disabled={geoLoading}
+            onClick={() => {
+              setGeoLoading(true);
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  setForm((f) => ({ ...f, latitude: pos.coords.latitude.toString(), longitude: pos.coords.longitude.toString() }));
+                  setGeoLoading(false);
+                },
+                () => { setError("Could not get current location. Please enter coordinates manually."); setGeoLoading(false); }
+              );
+            }}
+            className="mt-2 text-xs text-red-600 dark:text-red-400 hover:underline font-medium"
+          >
+            {geoLoading ? "Getting location..." : "📍 Use current location"}
+          </button>
+          <p className="text-xs text-gray-400 mt-1">Required for the doctor to appear in nearby search results.</p>
         </div>
 
         {/* Google Maps Link */}

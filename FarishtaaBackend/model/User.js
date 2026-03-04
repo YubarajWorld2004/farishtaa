@@ -22,6 +22,8 @@ address : {type : String},
 photoUrl : {type : String},
 mapLink : {type : String},
 fee : {type : Number},
+clinicName : {type : String},
+addedByHospital : {type : mongoose.Schema.Types.ObjectId, ref : 'User'},
 availability : [{
   day : {type : String, enum : ['All Days','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']},
   startTime : {type : String},
