@@ -1,0 +1,27 @@
+const mongoose = require('mongoose');
+
+const appointmentSchema = new mongoose.Schema(
+  {
+    doctor: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    patient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    appointmentDate: { type: String, required: true }, // YYYY-MM-DD
+    slotTime: { type: String, required: true },
+    appointmentAt: { type: Date, required: true },
+    status: {
+      type: String,
+      enum: ['pending', 'accepted', 'rejected', 'cancelled', 'completed', 'closed'],
+      default: 'pending',
+    },
+    reason: { type: String },
+    meetingType: { type: String, enum: ['online', 'in-person'], default: 'online' },
+    doctorResponseNote: { type: String },
+    telemedicineSession: { type: mongoose.Schema.Types.ObjectId, ref: 'TelemedicineSession' },
+  },
+  { timestamps: true }
+);
+
+appointmentSchema.index({ doctor: 1, appointmentDate: 1, slotTime: 1 });
+appointmentSchema.index({ patient: 1, appointmentAt: -1 });
+appointmentSchema.index({ doctor: 1, appointmentAt: -1 });
+
+module.exports = mongoose.model('Appointment', appointmentSchema);

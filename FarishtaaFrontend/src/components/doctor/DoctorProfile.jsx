@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { addReview, setReviews } from "../../store/slices/reviewSlice";
 import { FaStar, FaMapMarkerAlt, FaDirections } from "react-icons/fa";
-import { HiArrowLeft } from "react-icons/hi";
+import { HiArrowLeft, HiOutlineCalendar, HiOutlineClock } from "react-icons/hi";
 
 const StarInput = ({ rating, setRating }) => (
   <div className="flex gap-1">
@@ -33,9 +33,11 @@ const DoctorProfile = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const { token, userId } = useSelector((state) => state.auth);
+  const { token, userId, userType } = useSelector((state) => state.auth);
   const { reviews } = useSelector((state) => state.review);
   const dispatch = useDispatch();
+
+  const isPatientLoggedIn = token && userType === "Patient";
 
   useEffect(() => {
     const fetchDoctor = async () => {
@@ -128,6 +130,10 @@ const DoctorProfile = () => {
       ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1)
       : doctor.ratings || "0.0";
 
+  const availabilitySlots = Array.isArray(doctor?.availability)
+    ? doctor.availability.filter((slot) => slot && (slot.day || slot.startTime || slot.endTime))
+    : [];
+
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-gray-900">
       {/* Sticky back bar */}
@@ -171,7 +177,7 @@ const DoctorProfile = () => {
 
               {/* Specialists */}
               <div className="flex flex-wrap gap-2 mt-3">
-                {doctor.specialists?.map((s, i) => (
+                {(doctor.specialists || (doctor.specialist ? [doctor.specialist] : [])).map((s, i) => (
                   <span
                     key={i}
                     className="text-xs bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1 rounded-full font-medium border border-red-100 dark:border-red-800"
@@ -216,6 +222,47 @@ const DoctorProfile = () => {
                   {t('doctorProfile.getDirections')}
                 </button>
               )}
+
+              {isPatientLoggedIn && (
+                <button
+                  onClick={() => navigate(`/appointments/book/${doctor._id}`)}
+                  className="mt-3 ml-0 sm:ml-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition"
+                >
+                  <HiOutlineCalendar size={14} />
+                  Book Online Appointment
+                </button>
+              )}
+
+              <div className="mt-4 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/30 p-3 sm:p-4">
+                <div className="flex items-center gap-2 mb-2.5">
+                  <HiOutlineClock size={15} className="text-red-500 dark:text-red-400" />
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    Availability Slots
+                  </p>
+                </div>
+
+                {availabilitySlots.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {availabilitySlots.map((slot, index) => (
+                      <div
+                        key={`${slot.day || "day"}-${slot.startTime || "start"}-${slot.endTime || "end"}-${index}`}
+                        className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-2"
+                      >
+                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          {slot.day || "Day not set"}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {slot.startTime || "--:--"} - {slot.endTime || "--:--"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    No availability slots shared yet.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>

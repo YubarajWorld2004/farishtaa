@@ -5,6 +5,8 @@ import {
   HiOutlineStar,
   HiOutlineChat,
   HiOutlineUser,
+  HiOutlineCalendar,
+  HiOutlineDocumentText,
   HiOutlineArrowRight,
   HiOutlineCheckCircle,
   HiOutlineExclamationCircle,
@@ -161,6 +163,38 @@ const DoctorDashboard = () => {
                 View Reviews
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-500">See what patients are saying</p>
+            </div>
+            <HiOutlineArrowRight size={16} className="text-gray-300 dark:text-gray-600 group-hover:text-red-500 transition" />
+          </Link>
+
+          <Link
+            to="/doctor-dashboard/appointments"
+            className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-red-200 dark:hover:border-red-800 hover:shadow-sm transition-all group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition">
+              <HiOutlineCalendar size={20} className="text-blue-600 dark:text-blue-300" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-red-600 dark:group-hover:text-red-400 transition">
+                Manage Appointments
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Accept, reject, and complete bookings</p>
+            </div>
+            <HiOutlineArrowRight size={16} className="text-gray-300 dark:text-gray-600 group-hover:text-red-500 transition" />
+          </Link>
+
+          <Link
+            to="/prescriptions"
+            className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-red-200 dark:hover:border-red-800 hover:shadow-sm transition-all group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/30 transition">
+              <HiOutlineDocumentText size={20} className="text-emerald-600 dark:text-emerald-300" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-red-600 dark:group-hover:text-red-400 transition">
+                Digital Prescriptions
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Create and share treatment plans</p>
             </div>
             <HiOutlineArrowRight size={16} className="text-gray-300 dark:text-gray-600 group-hover:text-red-500 transition" />
           </Link>

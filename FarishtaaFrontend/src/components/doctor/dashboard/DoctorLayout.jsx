@@ -7,6 +7,9 @@ import {
   HiOutlineViewGrid,
   HiOutlineUser,
   HiOutlineStar,
+  HiOutlineCalendar,
+  HiOutlineVideoCamera,
+  HiOutlineDocumentText,
   HiOutlineCog,
   HiOutlineLogout,
 } from "react-icons/hi";
@@ -16,6 +19,9 @@ const sidebarLinks = [
   { to: "/doctor-dashboard", icon: HiOutlineViewGrid, label: "Dashboard", end: true },
   { to: "/doctor-dashboard/profile", icon: HiOutlineUser, label: "My Profile" },
   { to: "/doctor-dashboard/reviews", icon: HiOutlineStar, label: "Reviews" },
+  { to: "/doctor-dashboard/appointments", icon: HiOutlineCalendar, label: "Appointments" },
+  { to: "/telemedicine", icon: HiOutlineVideoCamera, label: "Telemedicine" },
+  { to: "/prescriptions", icon: HiOutlineDocumentText, label: "Prescriptions" },
   { to: "/doctor-dashboard/settings", icon: HiOutlineCog, label: "Settings" },
 ];
 

@@ -75,7 +75,7 @@ const findUserDoctorsNearby=async (lat,lng,specialist,radius)=>{
         $maxDistance: radius,
       },
     },
-  }, 'firstName lastName specialist experience degree languages address about photoUrl location mapLink fee clinicName doctorReviews');
+  }, 'firstName lastName specialist experience degree languages address about photoUrl location mapLink fee clinicName doctorReviews availability');
   // Map to match Doctor model shape so frontend works seamlessly
   return users.map(u => ({
     _id: u._id,
@@ -92,6 +92,7 @@ const findUserDoctorsNearby=async (lat,lng,specialist,radius)=>{
     fee: u.fee,
     clinicName: u.clinicName,
     reviews: u.doctorReviews,
+    availability: u.availability,
     _isUserDoctor: true,
   }));
 }
@@ -294,6 +295,7 @@ exports.getDoctorById=async (req,res,next)=>{
                 mapLink: userDoc.mapLink,
                 fee: userDoc.fee,
                 clinicName: userDoc.clinicName,
+                availability: userDoc.availability,
                 reviews: userDoc.doctorReviews,
               };
             }

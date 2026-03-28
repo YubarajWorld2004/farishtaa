@@ -13,7 +13,7 @@ import { LuStethoscope } from "react-icons/lu";
 import { TiHome } from "react-icons/ti";
 import { MdDashboard } from "react-icons/md";
 import { TbShieldCheckeredFilled } from "react-icons/tb";
-import { HiMenu, HiX } from "react-icons/hi";
+import { HiMenu, HiX, HiOutlineCalendar, HiOutlineVideoCamera, HiOutlineDocumentText } from "react-icons/hi";
 import { FiSun, FiMoon } from "react-icons/fi";
 
 
@@ -95,6 +95,33 @@ const NavBar = () => {
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
               <TbShieldCheckeredFilled size={16} /> {t('nav.aiSymptoms')}
+            </Link>
+          )}
+
+          {isLoggedIn && !isDoctor && !isHospital && (
+            <Link
+              to="/appointments"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+            >
+              <HiOutlineCalendar size={16} /> Appointments
+            </Link>
+          )}
+
+          {isLoggedIn && (isDoctor || !isHospital) && (
+            <Link
+              to="/telemedicine"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+            >
+              <HiOutlineVideoCamera size={16} /> Telemedicine
+            </Link>
+          )}
+
+          {isLoggedIn && (isDoctor || !isHospital) && (
+            <Link
+              to="/prescriptions"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+            >
+              <HiOutlineDocumentText size={16} /> Prescriptions
             </Link>
           )}
         </div>
@@ -195,6 +222,36 @@ const NavBar = () => {
               className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
               <TbShieldCheckeredFilled size={16} /> {t('nav.aiSymptoms')}
+            </Link>
+          )}
+
+          {isLoggedIn && !isDoctor && !isHospital && (
+            <Link
+              to="/appointments"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+            >
+              <HiOutlineCalendar size={16} /> Appointments
+            </Link>
+          )}
+
+          {isLoggedIn && (isDoctor || !isHospital) && (
+            <Link
+              to="/telemedicine"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+            >
+              <HiOutlineVideoCamera size={16} /> Telemedicine
+            </Link>
+          )}
+
+          {isLoggedIn && (isDoctor || !isHospital) && (
+            <Link
+              to="/prescriptions"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+            >
+              <HiOutlineDocumentText size={16} /> Prescriptions
             </Link>
           )}
 

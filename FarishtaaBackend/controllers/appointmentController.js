@@ -1,0 +1,301 @@
+const Appointment = require('../model/Appointment');
+const TelemedicineSession = require('../model/TelemedicineSession');
+const User = require('../model/User');
+const {
+  buildSlotsFromAvailability,
+  toDateTimeFromDateAndLabel,
+} = require('../utils/slotUtils');
+
+const BOOKED_STATUSES = ['pending', 'accepted'];
+const DOCTOR_STATUS_UPDATES = ['accepted', 'rejected', 'completed', 'closed'];
+const TERMINAL_APPOINTMENT_STATUSES = ['rejected', 'completed', 'closed'];
+
+const validateDateString = (value) => {
+  if (!value || typeof value !== 'string') return false;
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+};
+
+const createSessionForAppointment = async (appointment) => {
+  if (appointment.telemedicineSession) {
+    const linked = await TelemedicineSession.findById(appointment.telemedicineSession).select('_id status');
+    if (linked) {
+      if (linked.status !== 'active') {
+        linked.status = 'active';
+        linked.lastMessageAt = new Date();
+        await linked.save();
+      }
+      return linked._id;
+    }
+  }
+
+  const existing = await TelemedicineSession.findOne({ appointment: appointment._id }).select('_id status');
+  if (existing) {
+    if (existing.status !== 'active') {
+      existing.status = 'active';
+      existing.lastMessageAt = new Date();
+      await existing.save();
+    }
+    appointment.telemedicineSession = existing._id;
+    await appointment.save();
+    return existing._id;
+  }
+
+  const session = await TelemedicineSession.create({
+    doctor: appointment.doctor,
+    patient: appointment.patient,
+    appointment: appointment._id,
+    status: 'active',
+    lastMessageAt: new Date(),
+  });
+
+  appointment.telemedicineSession = session._id;
+  await appointment.save();
+  return session._id;
+};
+
+const closeSessionForAppointment = async (appointment) => {
+  const linkedSessionId = appointment.telemedicineSession;
+
+  let session = null;
+  if (linkedSessionId) {
+    session = await TelemedicineSession.findById(linkedSessionId).select('_id status');
+  }
+
+  if (!session) {
+    session = await TelemedicineSession.findOne({ appointment: appointment._id }).select('_id status');
+  }
+
+  if (!session) {
+    appointment.telemedicineSession = undefined;
+    return null;
+  }
+
+  if (session.status !== 'closed') {
+    session.status = 'closed';
+    await session.save();
+  }
+
+  appointment.telemedicineSession = session._id;
+  return session._id;
+};
+
+exports.getDoctorSlots = async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    const { date } = req.query;
+
+    if (!validateDateString(date)) {
+      return res.status(400).json({ message: 'Query param date must be YYYY-MM-DD' });
+    }
+
+    const doctor = await User.findOne({ _id: doctorId, userType: 'Doctor' }).select(
+      'firstName lastName availability'
+    );
+
+    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+
+    const allSlots = buildSlotsFromAvailability(doctor.availability, date, 30);
+
+    const bookedAppointments = await Appointment.find({
+      doctor: doctorId,
+      appointmentDate: date,
+      status: { $in: BOOKED_STATUSES },
+    }).select('slotTime');
+
+    const booked = new Set(bookedAppointments.map((a) => a.slotTime));
+    const availableSlots = allSlots.filter((slot) => !booked.has(slot));
+
+    return res.status(200).json({
+      doctor: {
+        _id: doctor._id,
+        name: `${doctor.firstName} ${doctor.lastName}`,
+      },
+      date,
+      allSlots,
+      availableSlots,
+      bookedSlots: [...booked],
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to fetch slots', error: error.message });
+  }
+};
+
+exports.bookAppointment = async (req, res) => {
+  try {
+    const patientId = req.userId;
+    const { doctorId, appointmentDate, slotTime, reason, meetingType } = req.body;
+
+    if (!doctorId || !validateDateString(appointmentDate) || !slotTime) {
+      return res.status(400).json({
+        message: 'doctorId, appointmentDate (YYYY-MM-DD), and slotTime are required',
+      });
+    }
+
+    const [doctor, patient] = await Promise.all([
+      User.findOne({ _id: doctorId, userType: 'Doctor' }).select('availability firstName lastName'),
+      User.findOne({ _id: patientId, userType: 'Patient' }).select('firstName lastName'),
+    ]);
+
+    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    if (!patient) return res.status(403).json({ message: 'Only patients can book appointments' });
+
+    const availableSlots = buildSlotsFromAvailability(doctor.availability, appointmentDate, 30);
+    if (availableSlots.length === 0) {
+      return res.status(400).json({ message: 'Doctor has not configured any slots for this date' });
+    }
+
+    if (!availableSlots.includes(slotTime)) {
+      return res.status(400).json({ message: 'Selected slot is not available for this doctor' });
+    }
+
+    const appointmentAt = toDateTimeFromDateAndLabel(appointmentDate, slotTime);
+    if (!appointmentAt) {
+      return res.status(400).json({ message: 'Invalid slotTime format' });
+    }
+
+    const conflict = await Appointment.findOne({
+      doctor: doctorId,
+      appointmentDate,
+      slotTime,
+      status: { $in: BOOKED_STATUSES },
+    }).select('_id');
+
+    if (conflict) {
+      return res.status(409).json({ message: 'This slot is already booked' });
+    }
+
+    const appointment = await Appointment.create({
+      doctor: doctorId,
+      patient: patientId,
+      appointmentDate,
+      slotTime,
+      appointmentAt,
+      status: 'pending',
+      reason,
+      meetingType: meetingType === 'in-person' ? 'in-person' : 'online',
+    });
+
+    const populated = await Appointment.findById(appointment._id)
+      .populate({ path: 'doctor', select: 'firstName lastName specialist fee clinicName' })
+      .populate({ path: 'patient', select: 'firstName lastName' });
+
+    return res.status(201).json({
+      message: 'Appointment request sent. Awaiting doctor confirmation.',
+      appointment: populated,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to book appointment', error: error.message });
+  }
+};
+
+exports.getPatientAppointments = async (req, res) => {
+  try {
+    const appointments = await Appointment.find({ patient: req.userId })
+      .populate({ path: 'doctor', select: 'firstName lastName specialist fee clinicName photoUrl' })
+      .sort({ appointmentAt: -1 });
+
+    return res.status(200).json({ appointments });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to fetch appointments', error: error.message });
+  }
+};
+
+exports.cancelPatientAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const appointment = await Appointment.findById(appointmentId);
+
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    if (String(appointment.patient) !== String(req.userId)) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    if (!['pending', 'accepted'].includes(appointment.status)) {
+      return res.status(400).json({ message: 'Only pending or accepted appointments can be cancelled' });
+    }
+
+    appointment.status = 'cancelled';
+    await closeSessionForAppointment(appointment);
+    await appointment.save();
+
+    return res.status(200).json({
+      message: 'Appointment cancelled successfully',
+      appointment,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to cancel appointment', error: error.message });
+  }
+};
+
+exports.getDoctorAppointments = async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = { doctor: req.userId };
+    if (status) filter.status = status;
+
+    const appointments = await Appointment.find(filter)
+      .populate({ path: 'patient', select: 'firstName lastName age gender' })
+      .sort({ appointmentAt: 1 });
+
+    return res.status(200).json({ appointments });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to fetch appointments', error: error.message });
+  }
+};
+
+exports.updateAppointmentStatus = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { status, doctorResponseNote } = req.body;
+
+    if (!DOCTOR_STATUS_UPDATES.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status update value' });
+    }
+
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+
+    if (String(appointment.doctor) !== String(req.userId)) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    if (appointment.status === 'cancelled') {
+      return res.status(400).json({ message: 'Cancelled appointments cannot be updated' });
+    }
+
+    if (appointment.status === 'rejected' && status !== 'rejected') {
+      return res.status(400).json({ message: 'Rejected appointments cannot be reopened' });
+    }
+
+    if ((appointment.status === 'completed' || appointment.status === 'closed') && status !== appointment.status) {
+      return res.status(400).json({ message: 'Terminal appointments cannot be reopened' });
+    }
+
+    appointment.status = status;
+    if (doctorResponseNote !== undefined) {
+      appointment.doctorResponseNote = doctorResponseNote;
+    }
+
+    if (status === 'accepted') {
+      const sessionId = await createSessionForAppointment(appointment);
+      appointment.telemedicineSession = sessionId;
+    }
+
+    if (TERMINAL_APPOINTMENT_STATUSES.includes(status)) {
+      await closeSessionForAppointment(appointment);
+    }
+
+    await appointment.save();
+
+    const populated = await Appointment.findById(appointment._id)
+      .populate({ path: 'patient', select: 'firstName lastName age gender' })
+      .populate({ path: 'doctor', select: 'firstName lastName specialist' });
+
+    return res.status(200).json({
+      message: `Appointment ${status} successfully`,
+      appointment: populated,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to update appointment status', error: error.message });
+  }
+};
