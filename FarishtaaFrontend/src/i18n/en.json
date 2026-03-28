@@ -123,5 +123,73 @@
     "send": "Send",
     "disclaimer": "Farishtaa AI may make mistakes. Always consult a real doctor for medical decisions.",
     "you": "You"
+  },
+
+  "common": {
+    "all": "All",
+    "reason": "Reason"
+  },
+
+  "appointmentStatus": {
+    "pending": "Pending",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "cancelled": "Cancelled",
+    "completed": "Completed",
+    "closed": "Closed"
+  },
+
+  "telemedicine": {
+    "title": "Telemedicine",
+    "subtitle": "Secure doctor-patient chat with report sharing",
+    "loadingSessions": "Loading sessions...",
+    "noActiveSessions": "No active sessions yet. Accept an appointment first.",
+    "sessionFallback": "Session",
+    "appointmentAt": "Appointment: {{date}} at {{time}}",
+    "loadingMessages": "Loading messages...",
+    "noMessages": "No messages yet. Start the consultation chat.",
+    "chatUnavailable": "Telemedicine chat is unavailable for this appointment",
+    "chatClosed": "Chat is closed for this appointment.",
+    "typeMessage": "Type your message...",
+    "attachFiles": "Attach files",
+    "sending": "Sending...",
+    "send": "Send",
+    "filesSelected": "{{count}} file(s) selected: {{names}}",
+    "selectSession": "Select a telemedicine session from the left panel.",
+    "errors": {
+      "loadSessions": "Failed to load telemedicine sessions",
+      "fetchSessions": "Failed to fetch sessions",
+      "loadMessages": "Failed to load messages",
+      "fetchMessages": "Failed to fetch messages",
+      "sendMessage": "Failed to send message"
+    }
+  },
+
+  "doctorAppointments": {
+    "title": "Appointments",
+    "subtitle": "Review requests, confirm slots, and open telemedicine sessions.",
+    "noAppointmentsForFilter": "No appointments found for this filter.",
+    "accept": "Accept",
+    "reject": "Reject",
+    "markCompleted": "Mark Completed",
+    "openTelemedicine": "Open Telemedicine",
+    "errors": {
+      "updateAppointment": "Failed to update appointment"
+    }
+  },
+
+  "myAppointments": {
+    "title": "My Appointments",
+    "subtitle": "After doctor accepts your request, your confirmation appears here.",
+    "bookNewAppointment": "Book New Appointment",
+    "noAppointments": "No appointments yet.",
+    "doctorName": "Dr. {{name}}",
+    "waitingForConfirmation": "Waiting for doctor confirmation.",
+    "openTelemedicine": "Open Telemedicine",
+    "cancel": "Cancel",
+    "errors": {
+      "loadAppointments": "Failed to load appointments",
+      "cancelAppointment": "Failed to cancel appointment"
+    }
   }
 }

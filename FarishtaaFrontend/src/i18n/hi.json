@@ -123,5 +123,73 @@
     "send": "भेजें",
     "disclaimer": "फरिश्ता AI गलतियाँ कर सकता है। चिकित्सा निर्णयों के लिए हमेशा असली डॉक्टर से सलाह लें।",
     "you": "आप"
+  },
+
+  "common": {
+    "all": "सभी",
+    "reason": "कारण"
+  },
+
+  "appointmentStatus": {
+    "pending": "लंबित",
+    "accepted": "स्वीकृत",
+    "rejected": "अस्वीकृत",
+    "cancelled": "रद्द",
+    "completed": "पूर्ण",
+    "closed": "बंद"
+  },
+
+  "telemedicine": {
+    "title": "टेलीमेडिसिन",
+    "subtitle": "रिपोर्ट साझा करने के साथ सुरक्षित डॉक्टर-मरीज चैट",
+    "loadingSessions": "सेशन लोड हो रहे हैं...",
+    "noActiveSessions": "अभी कोई सक्रिय सेशन नहीं है। पहले अपॉइंटमेंट स्वीकार करें।",
+    "sessionFallback": "सेशन",
+    "appointmentAt": "अपॉइंटमेंट: {{date}} को {{time}} बजे",
+    "loadingMessages": "संदेश लोड हो रहे हैं...",
+    "noMessages": "अभी कोई संदेश नहीं। परामर्श चैट शुरू करें।",
+    "chatUnavailable": "इस अपॉइंटमेंट के लिए टेलीमेडिसिन चैट उपलब्ध नहीं है",
+    "chatClosed": "इस अपॉइंटमेंट के लिए चैट बंद है।",
+    "typeMessage": "अपना संदेश लिखें...",
+    "attachFiles": "फाइलें जोड़ें",
+    "sending": "भेजा जा रहा है...",
+    "send": "भेजें",
+    "filesSelected": "{{count}} फाइल चुनी गई: {{names}}",
+    "selectSession": "बाएं पैनल से एक टेलीमेडिसिन सेशन चुनें।",
+    "errors": {
+      "loadSessions": "टेलीमेडिसिन सेशन लोड नहीं हो सके",
+      "fetchSessions": "सेशन प्राप्त नहीं हो सके",
+      "loadMessages": "संदेश लोड नहीं हो सके",
+      "fetchMessages": "संदेश प्राप्त नहीं हो सके",
+      "sendMessage": "संदेश भेजा नहीं जा सका"
+    }
+  },
+
+  "doctorAppointments": {
+    "title": "अपॉइंटमेंट्स",
+    "subtitle": "रिक्वेस्ट देखें, स्लॉट की पुष्टि करें और टेलीमेडिसिन सेशन खोलें।",
+    "noAppointmentsForFilter": "इस फ़िल्टर के लिए कोई अपॉइंटमेंट नहीं मिला।",
+    "accept": "स्वीकार करें",
+    "reject": "अस्वीकार करें",
+    "markCompleted": "पूर्ण चिह्नित करें",
+    "openTelemedicine": "टेलीमेडिसिन खोलें",
+    "errors": {
+      "updateAppointment": "अपॉइंटमेंट अपडेट नहीं हो सका"
+    }
+  },
+
+  "myAppointments": {
+    "title": "मेरे अपॉइंटमेंट्स",
+    "subtitle": "डॉक्टर के स्वीकार करने के बाद आपकी पुष्टि यहां दिखाई देगी।",
+    "bookNewAppointment": "नया अपॉइंटमेंट बुक करें",
+    "noAppointments": "अभी कोई अपॉइंटमेंट नहीं है।",
+    "doctorName": "डॉ. {{name}}",
+    "waitingForConfirmation": "डॉक्टर की पुष्टि का इंतजार है।",
+    "openTelemedicine": "टेलीमेडिसिन खोलें",
+    "cancel": "रद्द करें",
+    "errors": {
+      "loadAppointments": "अपॉइंटमेंट लोड नहीं हो सके",
+      "cancelAppointment": "अपॉइंटमेंट रद्द नहीं हो सका"
+    }
   }
 }

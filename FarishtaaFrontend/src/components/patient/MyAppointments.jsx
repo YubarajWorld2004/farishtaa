@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import {
   HiOutlineCalendar,
   HiOutlineClock,
@@ -19,6 +20,7 @@ const STATUS_BADGE = {
 
 const MyAppointments = () => {
   const { token, userType } = useSelector((state) => state.auth);
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -37,13 +39,13 @@ const MyAppointments = () => {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.message || "Failed to load appointments");
+        setError(data.message || t("myAppointments.errors.loadAppointments"));
         return;
       }
       setAppointments(data.appointments || []);
     } catch (err) {
       console.error(err);
-      setError("Failed to load appointments");
+      setError(t("myAppointments.errors.loadAppointments"));
     } finally {
       setLoading(false);
     }
@@ -72,7 +74,7 @@ const MyAppointments = () => {
 
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Failed to cancel appointment");
+        alert(data.message || t("myAppointments.errors.cancelAppointment"));
         return;
       }
 
@@ -84,20 +86,22 @@ const MyAppointments = () => {
     }
   };
 
+  const getStatusLabel = (status) => t(`appointmentStatus.${status}`);
+
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">My Appointments</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t("myAppointments.title")}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            After doctor accepts your request, your confirmation appears here.
+            {t("myAppointments.subtitle")}
           </p>
         </div>
         <button
           onClick={() => navigate("/categories")}
           className="px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white"
         >
-          Book New Appointment
+          {t("myAppointments.bookNewAppointment")}
         </button>
       </div>
 
@@ -115,7 +119,7 @@ const MyAppointments = () => {
         </div>
       ) : appointments.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-12 text-center text-gray-500 dark:text-gray-400">
-          No appointments yet.
+          {t("myAppointments.noAppointments")}
         </div>
       ) : (
         <div className="space-y-3">
@@ -133,10 +137,12 @@ const MyAppointments = () => {
                         STATUS_BADGE[appointment.status] || STATUS_BADGE.pending
                       }`}
                     >
-                      {appointment.status}
+                      {getStatusLabel(appointment.status)}
                     </span>
 
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Dr. {doctorName}</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                      {t("myAppointments.doctorName", { name: doctorName || t("auth.doctor") })}
+                    </p>
 
                     <div className="flex flex-wrap gap-3 text-sm text-gray-600 dark:text-gray-300">
                       <span className="inline-flex items-center gap-1.5">
@@ -148,12 +154,14 @@ const MyAppointments = () => {
                     </div>
 
                     {appointment.reason && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Reason: {appointment.reason}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {t("common.reason")}: {appointment.reason}
+                      </p>
                     )}
 
                     {appointment.status === "pending" && (
                       <p className="text-xs text-amber-600 dark:text-amber-300">
-                        Waiting for doctor confirmation.
+                        {t("myAppointments.waitingForConfirmation")}
                       </p>
                     )}
                   </div>
@@ -164,7 +172,7 @@ const MyAppointments = () => {
                         onClick={() => navigate(`/telemedicine?session=${appointment.telemedicineSession}`)}
                         className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"
                       >
-                        <HiOutlineVideoCamera size={14} /> Open Telemedicine
+                        <HiOutlineVideoCamera size={14} /> {t("myAppointments.openTelemedicine")}
                       </button>
                     )}
 
@@ -174,7 +182,7 @@ const MyAppointments = () => {
                         disabled={actionId === appointment._id}
                         className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200"
                       >
-                        <HiOutlineXCircle size={14} /> Cancel
+                        <HiOutlineXCircle size={14} /> {t("myAppointments.cancel")}
                       </button>
                     )}
                   </div>

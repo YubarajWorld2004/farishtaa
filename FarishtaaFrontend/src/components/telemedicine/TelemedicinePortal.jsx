@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import {
   HiOutlinePaperClip,
   HiOutlinePaperAirplane,
@@ -24,6 +25,7 @@ const PATIENT_BLOCKED_STATUSES = ["rejected", "completed", "cancelled", "closed"
 
 const TelemedicinePortal = () => {
   const { token, userType } = useSelector((state) => state.auth);
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -54,7 +56,7 @@ const TelemedicinePortal = () => {
       });
       const data = await res.json();
       if (!res.ok) {
-        console.error(data.message || "Failed to load telemedicine sessions");
+        console.error(data.message || t("telemedicine.errors.loadSessions"));
         return;
       }
 
@@ -76,7 +78,7 @@ const TelemedicinePortal = () => {
         setSearchParams({ session: first });
       }
     } catch (error) {
-      console.error("Failed to fetch sessions", error);
+      console.error(t("telemedicine.errors.fetchSessions"), error);
     } finally {
       setLoadingSessions(false);
     }
@@ -99,12 +101,12 @@ const TelemedicinePortal = () => {
           await fetchSessions();
           return;
         }
-        console.error(data.message || "Failed to load messages");
+        console.error(data.message || t("telemedicine.errors.loadMessages"));
         return;
       }
       setMessages(data.messages || []);
     } catch (error) {
-      console.error("Failed to fetch messages", error);
+      console.error(t("telemedicine.errors.fetchMessages"), error);
     } finally {
       setLoadingMessages(false);
     }
@@ -145,7 +147,7 @@ const TelemedicinePortal = () => {
     e.preventDefault();
 
     if (isPatientChatBlocked) {
-      alert("Telemedicine chat is unavailable for this appointment");
+      alert(t("telemedicine.chatUnavailable"));
       return;
     }
 
@@ -171,7 +173,7 @@ const TelemedicinePortal = () => {
           setMessages([]);
           await fetchSessions();
         }
-        alert(data.message || "Failed to send message");
+        alert(data.message || t("telemedicine.errors.sendMessage"));
         return;
       }
 
@@ -180,7 +182,7 @@ const TelemedicinePortal = () => {
       setMessages((prev) => [...prev, data.message]);
       fetchSessions();
     } catch (error) {
-      console.error("Failed to send message", error);
+      console.error(t("telemedicine.errors.sendMessage"), error);
     } finally {
       setSending(false);
     }
@@ -199,22 +201,22 @@ const TelemedicinePortal = () => {
         <aside className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
           <div className="p-4 border-b border-gray-100 dark:border-gray-700">
             <h1 className="text-lg font-bold text-gray-900 dark:text-white inline-flex items-center gap-2">
-              <HiOutlineVideoCamera size={20} className="text-red-600" /> Telemedicine
+                  <HiOutlineVideoCamera size={20} className="text-red-600" /> {t("telemedicine.title")}
             </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Secure doctor-patient chat with report sharing</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("telemedicine.subtitle")}</p>
           </div>
 
           <div className="flex-1 overflow-y-auto p-2 space-y-2">
             {loadingSessions ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 p-3">Loading sessions...</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 p-3">{t("telemedicine.loadingSessions")}</p>
             ) : sessions.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400 p-3">
-                No active sessions yet. Accept an appointment first.
+                    {t("telemedicine.noActiveSessions")}
               </p>
             ) : (
               sessions.map((session) => {
                 const counterpart = isDoctor ? session.patient : session.doctor;
-                const counterpartName = toDisplayName(counterpart) || "Session";
+                    const counterpartName = toDisplayName(counterpart) || t("telemedicine.sessionFallback");
                 const isActive = session._id === activeSessionId;
 
                 return (
@@ -251,22 +253,31 @@ const TelemedicinePortal = () => {
                 </p>
                 {activeSession.appointment && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Appointment: {activeSession.appointment.appointmentDate} at {activeSession.appointment.slotTime}
+                      {t("telemedicine.appointmentAt", {
+                        date: activeSession.appointment.appointmentDate,
+                        time: activeSession.appointment.slotTime,
+                      })}
                   </p>
                 )}
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/70 dark:bg-gray-900/20">
                 {loadingMessages ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Loading messages...</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t("telemedicine.loadingMessages")}</p>
                 ) : messages.length === 0 ? (
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    No messages yet. Start the consultation chat.
+                    {t("telemedicine.noMessages")}
                   </p>
                 ) : (
                   messages.map((message) => {
                     const mine = message.senderType === userType;
                     const senderName = toDisplayName(message.sender);
+                    const senderTypeLabel =
+                      message.senderType === "Doctor"
+                        ? t("auth.doctor")
+                        : message.senderType === "Patient"
+                          ? t("auth.patient")
+                          : message.senderType;
 
                     return (
                       <div key={message._id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
@@ -278,7 +289,7 @@ const TelemedicinePortal = () => {
                           }`}
                         >
                           <p className={`text-[11px] mb-1 ${mine ? "text-red-100" : "text-gray-500 dark:text-gray-400"}`}>
-                            {senderName || message.senderType}
+                            {senderName || senderTypeLabel}
                           </p>
 
                           {message.content && <p className="text-sm whitespace-pre-wrap">{message.content}</p>}
@@ -308,7 +319,7 @@ const TelemedicinePortal = () => {
               <form onSubmit={handleSend} className="p-3 border-t border-gray-100 dark:border-gray-700 space-y-2">
                 {isPatientChatBlocked && (
                   <p className="text-xs text-amber-700 dark:text-amber-300">
-                    Chat is closed for this appointment.
+                    {t("telemedicine.chatClosed")}
                   </p>
                 )}
 
@@ -318,13 +329,13 @@ const TelemedicinePortal = () => {
                   onChange={(e) => setContent(e.target.value)}
                   disabled={isPatientChatBlocked}
                   className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  placeholder="Type your message..."
+                  placeholder={t("telemedicine.typeMessage")}
                 />
 
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
                   <label className="inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300 cursor-pointer">
                     <HiOutlinePaperClip size={14} />
-                    Attach files
+                    {t("telemedicine.attachFiles")}
                     <input
                       type="file"
                       multiple
@@ -340,20 +351,23 @@ const TelemedicinePortal = () => {
                     className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold disabled:opacity-50"
                   >
                     <HiOutlinePaperAirplane size={14} />
-                    {sending ? "Sending..." : "Send"}
+                    {sending ? t("telemedicine.sending") : t("telemedicine.send")}
                   </button>
                 </div>
 
                 {files.length > 0 && (
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {files.length} file(s) selected: {files.map((f) => f.name).join(", ")}
+                    {t("telemedicine.filesSelected", {
+                      count: files.length,
+                      names: files.map((f) => f.name).join(", "),
+                    })}
                   </p>
                 )}
               </form>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-center text-gray-500 dark:text-gray-400 p-6">
-              Select a telemedicine session from the left panel.
+              {t("telemedicine.selectSession")}
             </div>
           )}
         </section>

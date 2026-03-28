@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   HiOutlineCalendar,
   HiOutlineClock,
@@ -20,8 +21,12 @@ const STATUS_STYLES = {
   closed: "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700",
 };
 
+const SUMMARY_STATUSES = ["pending", "accepted", "completed", "closed", "rejected", "cancelled"];
+const FILTER_STATUSES = ["all", "pending", "accepted", "completed", "closed", "rejected", "cancelled"];
+
 const DoctorAppointments = () => {
   const { token } = useSelector((state) => state.auth);
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [appointments, setAppointments] = useState([]);
@@ -69,17 +74,19 @@ const DoctorAppointments = () => {
 
       if (!res.ok) {
         const errData = await res.json();
-        alert(errData.message || "Failed to update appointment");
+        alert(errData.message || t("doctorAppointments.errors.updateAppointment"));
         return;
       }
 
       await fetchAppointments();
     } catch (error) {
-      console.error("Failed to update appointment", error);
+      console.error(t("doctorAppointments.errors.updateAppointment"), error);
     } finally {
       setUpdatingId(null);
     }
   };
+
+  const getStatusLabel = (status) => t(`appointmentStatus.${status}`);
 
   const summary = useMemo(() => {
     return appointments.reduce(
@@ -100,35 +107,28 @@ const DoctorAppointments = () => {
   }
 
   return (
-          ["closed", "Closed"],
     <div className="max-w-6xl mx-auto space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Appointments</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t("doctorAppointments.title")}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Review requests, confirm slots, and open telemedicine sessions.
+          {t("doctorAppointments.subtitle")}
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {[
-          ["pending", "Pending"],
-          ["accepted", "Accepted"],
-          ["completed", "Completed"],
-          ["rejected", "Rejected"],
-          ["cancelled", "Cancelled"],
-        ].map(([key, label]) => (
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+        {SUMMARY_STATUSES.map((key) => (
           <div
             key={key}
             className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4"
           >
-            <p className="text-xs text-gray-400 dark:text-gray-500">{label}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{getStatusLabel(key)}</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{summary[key]}</p>
           </div>
         ))}
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {["all", "pending", "accepted", "completed", "closed", "rejected", "cancelled"].map((value) => (
+        {FILTER_STATUSES.map((value) => (
           <button
             key={value}
             onClick={() => setFilter(value)}
@@ -138,14 +138,14 @@ const DoctorAppointments = () => {
                 : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600"
             }`}
           >
-            {value === "all" ? "All" : value.charAt(0).toUpperCase() + value.slice(1)}
+            {value === "all" ? t("common.all") : getStatusLabel(value)}
           </button>
         ))}
       </div>
 
       {appointments.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-10 text-center text-gray-500 dark:text-gray-400">
-          No appointments found for this filter.
+          {t("doctorAppointments.noAppointmentsForFilter")}
         </div>
       ) : (
         <div className="space-y-3">
@@ -165,14 +165,14 @@ const DoctorAppointments = () => {
                           STATUS_STYLES[appointment.status] || STATUS_STYLES.pending
                         }`}
                       >
-                        {appointment.status}
+                        {getStatusLabel(appointment.status)}
                       </span>
                     </div>
 
                     <div className="flex flex-wrap gap-3 text-sm text-gray-600 dark:text-gray-300">
                       <span className="inline-flex items-center gap-1.5">
                         <HiOutlineUser size={15} />
-                        {patientName || "Patient"}
+                        {patientName || t("auth.patient")}
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <HiOutlineCalendar size={15} />
@@ -186,7 +186,7 @@ const DoctorAppointments = () => {
 
                     {appointment.reason && (
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Reason: {appointment.reason}
+                        {t("common.reason")}: {appointment.reason}
                       </p>
                     )}
                   </div>
@@ -199,14 +199,14 @@ const DoctorAppointments = () => {
                           disabled={updatingId === appointment._id}
                           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
                         >
-                          <HiOutlineCheckCircle size={14} /> Accept
+                          <HiOutlineCheckCircle size={14} /> {t("doctorAppointments.accept")}
                         </button>
                         <button
                           onClick={() => updateStatus(appointment._id, "rejected")}
                           disabled={updatingId === appointment._id}
                           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white"
                         >
-                          <HiOutlineXCircle size={14} /> Reject
+                          <HiOutlineXCircle size={14} /> {t("doctorAppointments.reject")}
                         </button>
                       </>
                     )}
@@ -218,14 +218,14 @@ const DoctorAppointments = () => {
                           disabled={updatingId === appointment._id}
                           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"
                         >
-                          <HiOutlineClipboardCheck size={14} /> Mark Completed
+                          <HiOutlineClipboardCheck size={14} /> {t("doctorAppointments.markCompleted")}
                         </button>
                         {appointment.telemedicineSession && (
                           <button
                             onClick={() => navigate(`/telemedicine?session=${appointment.telemedicineSession}`)}
                             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200"
                           >
-                            <HiOutlineVideoCamera size={14} /> Open Telemedicine
+                            <HiOutlineVideoCamera size={14} /> {t("doctorAppointments.openTelemedicine")}
                           </button>
                         )}
                       </>
