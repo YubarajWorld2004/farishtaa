@@ -10,8 +10,23 @@ const ensureDir = (dirPath) => {
 
 const sanitizeFileName = (name) => name.replace(/[^a-zA-Z0-9._-]/g, '_');
 
+const UPLOADS_BASE_DIR = process.env.UPLOAD_ROOT_DIR
+  ? path.resolve(process.env.UPLOAD_ROOT_DIR)
+  : process.env.VERCEL
+    ? path.join('/tmp', 'farishtaa', 'uploads')
+    : path.join(__dirname, '..', 'uploads');
+
+ensureDir(UPLOADS_BASE_DIR);
+
+const toPublicUploadUrl = (absoluteFilePath) => {
+  const relative = path.relative(UPLOADS_BASE_DIR, absoluteFilePath);
+  const normalized = relative.split(path.sep).join('/');
+  const safePath = normalized.startsWith('..') ? path.basename(absoluteFilePath) : normalized;
+  return `/uploads/${safePath.replace(/^\/+/, '')}`;
+};
+
 const makeUploader = (subDirectory, maxFileSizeBytes = 8 * 1024 * 1024) => {
-  const uploadRoot = path.join(__dirname, '..', 'uploads', subDirectory);
+  const uploadRoot = path.join(UPLOADS_BASE_DIR, subDirectory);
   ensureDir(uploadRoot);
 
   const storage = multer.diskStorage({
@@ -38,6 +53,8 @@ const uploadTelemedicineFiles = makeUploader(path.join('telemedicine', 'chat'), 
 const uploadPrescriptionFile = makeUploader('prescriptions', 15 * 1024 * 1024);
 
 module.exports = {
+  UPLOADS_BASE_DIR,
+  toPublicUploadUrl,
   uploadTelemedicineFiles,
   uploadPrescriptionFile,
 };

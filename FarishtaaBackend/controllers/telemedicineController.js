@@ -1,15 +1,12 @@
-const path = require('path');
 const TelemedicineSession = require('../model/TelemedicineSession');
 const TelemedicineMessage = require('../model/TelemedicineMessage');
 const Appointment = require('../model/Appointment');
+const { toPublicUploadUrl } = require('../middleware/upload');
 
 const mapFilesToAttachments = (files = []) =>
   files.map((file) => ({
     fileName: file.originalname,
-    fileUrl: `/uploads/${path
-      .relative(path.join(__dirname, '..', 'uploads'), file.path)
-      .split(path.sep)
-      .join('/')}`,
+    fileUrl: toPublicUploadUrl(file.path),
     mimeType: file.mimetype,
     size: file.size,
   }));

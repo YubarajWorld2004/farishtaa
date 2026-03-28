@@ -1,7 +1,7 @@
-const path = require('path');
 const Prescription = require('../model/Prescription');
 const Appointment = require('../model/Appointment');
 const User = require('../model/User');
+const { toPublicUploadUrl } = require('../middleware/upload');
 
 const parseMedicines = (medicinesInput) => {
   if (!medicinesInput) return [];
@@ -34,10 +34,7 @@ const buildFileObject = (file) => {
 
   return {
     fileName: file.originalname,
-    fileUrl: `/uploads/${path
-      .relative(path.join(__dirname, '..', 'uploads'), file.path)
-      .split(path.sep)
-      .join('/')}`,
+    fileUrl: toPublicUploadUrl(file.path),
     mimeType: file.mimetype,
     size: file.size,
   };
