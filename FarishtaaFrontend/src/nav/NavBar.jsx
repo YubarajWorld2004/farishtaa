@@ -16,7 +16,6 @@ import { TbShieldCheckeredFilled } from "react-icons/tb";
 import { HiMenu, HiX, HiOutlineCalendar, HiOutlineVideoCamera, HiOutlineDocumentText } from "react-icons/hi";
 import { FiSun, FiMoon } from "react-icons/fi";
 
-
 const NavBar = () => {
   const dispatch = useDispatch();
   const { isLoggedIn, userId, userType } = useSelector((state) => state.auth);
@@ -24,8 +23,8 @@ const NavBar = () => {
   const { darkMode } = useSelector((state) => state.theme);
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const isDoctor = userType === 'Doctor';
-  const isHospital = userType === 'Hospital';
+  const isDoctor = userType === "Doctor";
+  const isHospital = userType === "Hospital";
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
@@ -37,7 +36,6 @@ const NavBar = () => {
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-3 sm:px-6 h-14 sm:h-16">
-
         {/* Mobile hamburger */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -51,7 +49,9 @@ const NavBar = () => {
           <FarishtaaLogo className="w-7 h-7 sm:w-9 sm:h-9 group-hover:scale-105 transition" />
           <div className="leading-tight">
             <div className="text-base sm:text-lg font-extrabold text-red-600 tracking-tight">फरिश्ता</div>
-            <div className="text-gray-400 dark:text-gray-500 text-[9px] sm:text-[10px] font-medium tracking-wide hidden xs:block">{t('nav.healthcareCompanion')}</div>
+            <div className="text-gray-400 dark:text-gray-500 text-[9px] sm:text-[10px] font-medium tracking-wide hidden xs:block">
+              {t("nav.healthcareCompanion")}
+            </div>
           </div>
         </Link>
 
@@ -62,7 +62,7 @@ const NavBar = () => {
               to="/"
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <TiHome size={16} /> {t('nav.home')}
+              <TiHome size={16} /> {t("nav.home")}
             </Link>
           )}
 
@@ -71,21 +71,21 @@ const NavBar = () => {
               to="/hospital-dashboard"
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <MdDashboard size={16} /> {t('nav.dashboard')}
+              <MdDashboard size={16} /> {t("nav.dashboard")}
             </Link>
           ) : isDoctor ? (
             <Link
               to="/doctor-dashboard"
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <MdDashboard size={16} /> {t('nav.dashboard')}
+              <MdDashboard size={16} /> {t("nav.dashboard")}
             </Link>
           ) : (
             <Link
               to="/categories"
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <LuStethoscope size={16} /> {t('nav.findDoctors')}
+              <LuStethoscope size={16} /> {t("nav.findDoctors")}
             </Link>
           )}
 
@@ -94,7 +94,7 @@ const NavBar = () => {
               to={`/symptoms/${userId}`}
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <TbShieldCheckeredFilled size={16} /> {t('nav.aiSymptoms')}
+              <TbShieldCheckeredFilled size={16} /> {t("nav.aiSymptoms")}
             </Link>
           )}
 
@@ -103,7 +103,7 @@ const NavBar = () => {
               to="/appointments"
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <HiOutlineCalendar size={16} /> Appointments
+              <HiOutlineCalendar size={16} /> {t("nav.appointments")}
             </Link>
           )}
 
@@ -112,7 +112,7 @@ const NavBar = () => {
               to="/telemedicine"
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <HiOutlineVideoCamera size={16} /> Telemedicine
+              <HiOutlineVideoCamera size={16} /> {t("nav.telemedicine")}
             </Link>
           )}
 
@@ -121,7 +121,7 @@ const NavBar = () => {
               to="/prescriptions"
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <HiOutlineDocumentText size={16} /> Prescriptions
+              <HiOutlineDocumentText size={16} /> {t("nav.prescriptions")}
             </Link>
           )}
         </div>
@@ -132,7 +132,7 @@ const NavBar = () => {
           <button
             onClick={() => dispatch(toggleDarkMode())}
             className="p-1.5 sm:p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-amber-500 dark:hover:text-amber-400 transition-all"
-            title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            title={darkMode ? t("nav.switchToLightMode") : t("nav.switchToDarkMode")}
           >
             {darkMode ? <FiSun size={16} /> : <FiMoon size={16} />}
           </button>
@@ -157,17 +157,17 @@ const NavBar = () => {
               className="flex items-center gap-1 sm:gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-sm hover:shadow-md transition-all"
             >
               <CgProfile size={14} />
-              <span>{t('nav.login')}</span>
+              <span>{t("nav.login")}</span>
             </Link>
           ) : (
             <div className="flex items-center gap-1.5 sm:gap-2">
               <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-red-500 to-red-600 text-white flex items-center justify-center text-xs sm:text-sm font-bold shadow-sm">
-                {userType === 'Doctor' ? 'D' : userType === 'Hospital' ? 'H' : 'P'}
+                {userType === "Doctor" ? "D" : userType === "Hospital" ? "H" : "P"}
               </div>
               <button
                 onClick={handleLogout}
                 className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
-                title="Logout"
+                title={t("nav.logout")}
               >
                 <SlLogout size={16} />
               </button>
@@ -185,7 +185,7 @@ const NavBar = () => {
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <TiHome size={16} /> {t('nav.home')}
+              <TiHome size={16} /> {t("nav.home")}
             </Link>
           )}
 
@@ -195,7 +195,7 @@ const NavBar = () => {
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <MdDashboard size={16} /> {t('nav.dashboard')}
+              <MdDashboard size={16} /> {t("nav.dashboard")}
             </Link>
           ) : isDoctor ? (
             <Link
@@ -203,7 +203,7 @@ const NavBar = () => {
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <MdDashboard size={16} /> {t('nav.dashboard')}
+              <MdDashboard size={16} /> {t("nav.dashboard")}
             </Link>
           ) : (
             <Link
@@ -211,7 +211,7 @@ const NavBar = () => {
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <LuStethoscope size={16} /> {t('nav.findDoctors')}
+              <LuStethoscope size={16} /> {t("nav.findDoctors")}
             </Link>
           )}
 
@@ -221,7 +221,7 @@ const NavBar = () => {
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <TbShieldCheckeredFilled size={16} /> {t('nav.aiSymptoms')}
+              <TbShieldCheckeredFilled size={16} /> {t("nav.aiSymptoms")}
             </Link>
           )}
 
@@ -231,7 +231,7 @@ const NavBar = () => {
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <HiOutlineCalendar size={16} /> Appointments
+              <HiOutlineCalendar size={16} /> {t("nav.appointments")}
             </Link>
           )}
 
@@ -241,7 +241,7 @@ const NavBar = () => {
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <HiOutlineVideoCamera size={16} /> Telemedicine
+              <HiOutlineVideoCamera size={16} /> {t("nav.telemedicine")}
             </Link>
           )}
 
@@ -251,16 +251,19 @@ const NavBar = () => {
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <HiOutlineDocumentText size={16} /> Prescriptions
+              <HiOutlineDocumentText size={16} /> {t("nav.prescriptions")}
             </Link>
           )}
 
           {isLoggedIn && (
             <button
-              onClick={() => { handleLogout(); setMobileOpen(false); }}
+              onClick={() => {
+                handleLogout();
+                setMobileOpen(false);
+              }}
               className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all w-full text-left"
             >
-              <SlLogout size={16} /> {t('nav.logout')}
+              <SlLogout size={16} /> {t("nav.logout")}
             </button>
           )}
         </div>
@@ -268,9 +271,5 @@ const NavBar = () => {
     </nav>
   );
 };
-
-
-
-
 
 export default NavBar;

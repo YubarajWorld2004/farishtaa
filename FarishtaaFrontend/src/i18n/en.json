@@ -5,6 +5,11 @@
     "dashboard": "Dashboard",
     "findDoctors": "Find Doctors",
     "aiSymptoms": "AI Symptoms Checker",
+    "appointments": "Appointments",
+    "telemedicine": "Telemedicine",
+    "prescriptions": "Prescriptions",
+    "switchToLightMode": "Switch to light mode",
+    "switchToDarkMode": "Switch to dark mode",
     "login": "Login",
     "logout": "Logout"
   },
@@ -190,6 +195,91 @@
     "errors": {
       "loadAppointments": "Failed to load appointments",
       "cancelAppointment": "Failed to cancel appointment"
+    }
+  },
+
+  "prescription": {
+    "title": "Digital Prescriptions",
+    "subtitleDoctor": "Create and share prescriptions with patients, including report files.",
+    "subtitlePatient": "View prescriptions shared by your doctors and download attached reports.",
+    "create": "Create Prescription",
+    "issuedPrescriptions": "Issued Prescriptions",
+    "myPrescriptions": "My Prescriptions",
+    "loadingPrescriptions": "Loading prescriptions...",
+    "noPrescriptions": "No prescriptions yet.",
+    "doctorName": "Dr. {{name}}",
+    "issuedOn": "Issued:",
+    "downloadPdf": "Download PDF",
+    "downloadFile": "Download File",
+    "messages": {
+      "created": "Prescription created"
+    },
+    "errors": {
+      "fetchPrescriptions": "Failed to fetch prescriptions",
+      "fetchAppointments": "Failed to fetch appointments",
+      "selectPatientFirst": "Select a patient/appointment first",
+      "createFailed": "Failed to create prescription",
+      "createRequestFailed": "Failed to create prescription",
+      "watermarkFailed": "Failed to create prescription watermark"
+    },
+    "form": {
+      "appointment": "Appointment",
+      "selectAppointment": "Select appointment",
+      "patientIdFallback": "Patient Id (fallback)",
+      "patientIdPlaceholder": "Patient ObjectId",
+      "diagnosis": "Diagnosis",
+      "medicines": "Medicines",
+      "addMedicine": "Add medicine",
+      "medicine": "Medicine",
+      "dosage": "Dosage",
+      "frequency": "Frequency",
+      "duration": "Duration",
+      "instructions": "Instructions",
+      "additionalNotes": "Additional Notes",
+      "attachFile": "Attach File (PDF/Image)",
+      "creating": "Creating...",
+      "createPrescription": "Create Prescription"
+    },
+    "pdf": {
+      "na": "N/A",
+      "registeredPatient": "Registered patient",
+      "unknownDate": "Unknown date",
+      "at": "at",
+      "notLinked": "Not linked",
+      "title": "Doctor Prescription",
+      "generatedAt": "Generated: {{date}}",
+      "notSpecified": "Not specified",
+      "notProvided": "Not provided",
+      "noMedicinesListed": "No medicines listed",
+      "unnamedMedicine": "Unnamed medicine",
+      "emptyValue": "-",
+      "noFileAttached": "No file attached",
+      "unknownDoctor": "Unknown Doctor",
+      "signatureValid": "Signature valid",
+      "digitallySignedBy": "Digitally signed by Dr. {{name}}",
+      "dateLabel": "Date: {{date}}",
+      "reasonApprovedPrescription": "Reason: Approved prescription",
+      "sections": {
+        "header": "Prescription Header",
+        "doctorDetails": "Doctor Details",
+        "patientDetails": "Patient Details",
+        "clinicalSummary": "Clinical Summary",
+        "medicationPlan": "Medication Plan",
+        "attachments": "Attachments"
+      },
+      "fields": {
+        "prescriptionId": "Prescription ID",
+        "issuedAt": "Issued At",
+        "appointment": "Appointment",
+        "doctor": "Doctor",
+        "speciality": "Speciality",
+        "clinic": "Clinic",
+        "patient": "Patient",
+        "diagnosis": "Diagnosis",
+        "notes": "Notes",
+        "medicines": "Medicines",
+        "attachedFile": "Attached File"
+      }
     }
   }
 }

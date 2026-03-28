@@ -5,6 +5,11 @@
     "dashboard": "ଡ୍ୟାସବୋର୍ଡ",
     "findDoctors": "ଡାକ୍ତର ଖୋଜନ୍ତୁ",
     "aiSymptoms": "AI ଲକ୍ଷଣ ଯାଞ୍ଚ",
+    "appointments": "ଅପଏଣ୍ଟମେଣ୍ଟଗୁଡିକ",
+    "telemedicine": "ଟେଲିମେଡିସିନ",
+    "prescriptions": "ପ୍ରେସକ୍ରିପ୍ସନଗୁଡିକ",
+    "switchToLightMode": "ଲାଇଟ ମୋଡକୁ ପରିବର୍ତ୍ତନ କରନ୍ତୁ",
+    "switchToDarkMode": "ଡାର୍କ ମୋଡକୁ ପରିବର୍ତ୍ତନ କରନ୍ତୁ",
     "login": "ଲଗଇନ",
     "logout": "ଲଗଆଉଟ"
   },
@@ -190,6 +195,91 @@
     "errors": {
       "loadAppointments": "ଅପଏଣ୍ଟମେଣ୍ଟ ଲୋଡ ହେଲା ନାହିଁ",
       "cancelAppointment": "ଅପଏଣ୍ଟମେଣ୍ଟ ବାତିଲ ହେଲା ନାହିଁ"
+    }
+  },
+
+  "prescription": {
+    "title": "ଡିଜିଟାଲ ପ୍ରେସକ୍ରିପ୍ସନ",
+    "subtitleDoctor": "ରୋଗୀଙ୍କ ସହ ପ୍ରେସକ୍ରିପ୍ସନ ସେୟାର କରନ୍ତୁ ଏବଂ ରିପୋର୍ଟ ଫାଇଲ ଯୋଡନ୍ତୁ।",
+    "subtitlePatient": "ଡାକ୍ତରଙ୍କ ଦ୍ୱାରା ସେୟାର ହୋଇଥିବା ପ୍ରେସକ୍ରିପ୍ସନ ଦେଖନ୍ତୁ ଏବଂ ରିପୋର୍ଟ ଡାଉନଲୋଡ କରନ୍ତୁ।",
+    "create": "ପ୍ରେସକ୍ରିପ୍ସନ ତିଆରି କରନ୍ତୁ",
+    "issuedPrescriptions": "ଜାରି ହୋଇଥିବା ପ୍ରେସକ୍ରିପ୍ସନ",
+    "myPrescriptions": "ମୋର ପ୍ରେସକ୍ରିପ୍ସନ",
+    "loadingPrescriptions": "ପ୍ରେସକ୍ରିପ୍ସନ ଲୋଡ ହେଉଛି...",
+    "noPrescriptions": "ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ପ୍ରେସକ୍ରିପ୍ସନ ନାହିଁ।",
+    "doctorName": "ଡା. {{name}}",
+    "issuedOn": "ଜାରି:",
+    "downloadPdf": "PDF ଡାଉନଲୋଡ କରନ୍ତୁ",
+    "downloadFile": "ଫାଇଲ ଡାଉନଲୋଡ କରନ୍ତୁ",
+    "messages": {
+      "created": "ପ୍ରେସକ୍ରିପ୍ସନ ତିଆରି ହୋଇଗଲା"
+    },
+    "errors": {
+      "fetchPrescriptions": "ପ୍ରେସକ୍ରିପ୍ସନ ଆଣିପାରିଲା ନାହିଁ",
+      "fetchAppointments": "ଅପଏଣ୍ଟମେଣ୍ଟ ଆଣିପାରିଲା ନାହିଁ",
+      "selectPatientFirst": "ପ୍ରଥମେ ରୋଗୀ/ଅପଏଣ୍ଟମେଣ୍ଟ ବାଛନ୍ତୁ",
+      "createFailed": "ପ୍ରେସକ୍ରିପ୍ସନ ତିଆରି ହେଲା ନାହିଁ",
+      "createRequestFailed": "ପ୍ରେସକ୍ରିପ୍ସନ ତିଆରି ହେଲା ନାହିଁ",
+      "watermarkFailed": "ପ୍ରେସକ୍ରିପ୍ସନ ଓଟରମାର୍କ ତିଆରି ହେଲା ନାହିଁ"
+    },
+    "form": {
+      "appointment": "ଅପଏଣ୍ଟମେଣ୍ଟ",
+      "selectAppointment": "ଅପଏଣ୍ଟମେଣ୍ଟ ବାଛନ୍ତୁ",
+      "patientIdFallback": "ରୋଗୀ ID (ଫଲ୍ବ୍ୟାକ)",
+      "patientIdPlaceholder": "ରୋଗୀ ObjectId",
+      "diagnosis": "ନିଦାନ",
+      "medicines": "ଔଷଧଗୁଡିକ",
+      "addMedicine": "ଔଷଧ ଯୋଡନ୍ତୁ",
+      "medicine": "ଔଷଧ",
+      "dosage": "ମାତ୍ରା",
+      "frequency": "ଆବୃତ୍ତି",
+      "duration": "ଅବଧି",
+      "instructions": "ନିର୍ଦ୍ଦେଶ",
+      "additionalNotes": "ଅତିରିକ୍ତ ଟିପ୍ପଣୀ",
+      "attachFile": "ଫାଇଲ ଯୋଡନ୍ତୁ (PDF/ଛବି)",
+      "creating": "ତିଆରି ହେଉଛି...",
+      "createPrescription": "ପ୍ରେସକ୍ରିପ୍ସନ ତିଆରି କରନ୍ତୁ"
+    },
+    "pdf": {
+      "na": "ଉପଲବ୍ଧ ନୁହେଁ",
+      "registeredPatient": "ପଞ୍ଜିକୃତ ରୋଗୀ",
+      "unknownDate": "ଅଜଣା ତାରିଖ",
+      "at": "ରେ",
+      "notLinked": "ଲିଙ୍କ ନାହିଁ",
+      "title": "ଡାକ୍ତର ପ୍ରେସକ୍ରିପ୍ସନ",
+      "generatedAt": "ତିଆରି ସମୟ: {{date}}",
+      "notSpecified": "ଉଲ୍ଲେଖ ହୋଇନି",
+      "notProvided": "ପ୍ରଦାନ ହୋଇନି",
+      "noMedicinesListed": "କୌଣସି ଔଷଧ ସୂଚିଭୁକ୍ତ ନାହିଁ",
+      "unnamedMedicine": "ନାମହୀନ ଔଷଧ",
+      "emptyValue": "-",
+      "noFileAttached": "କୌଣସି ଫାଇଲ ସଂଲଗ୍ନ ନାହିଁ",
+      "unknownDoctor": "ଅଜଣା ଡାକ୍ତର",
+      "signatureValid": "ସହି ବୈଧ",
+      "digitallySignedBy": "ଡିଜିଟାଲ ସହି: ଡା. {{name}}",
+      "dateLabel": "ତାରିଖ: {{date}}",
+      "reasonApprovedPrescription": "କାରଣ: ଅନୁମୋଦିତ ପ୍ରେସକ୍ରିପ୍ସନ",
+      "sections": {
+        "header": "ପ୍ରେସକ୍ରିପ୍ସନ ଶୀର୍ଷକ",
+        "doctorDetails": "ଡାକ୍ତର ବିବରଣୀ",
+        "patientDetails": "ରୋଗୀ ବିବରଣୀ",
+        "clinicalSummary": "କ୍ଲିନିକାଲ ସାରାଂଶ",
+        "medicationPlan": "ଔଷଧ ଯୋଜନା",
+        "attachments": "ସଂଲଗ୍ନଗୁଡିକ"
+      },
+      "fields": {
+        "prescriptionId": "ପ୍ରେସକ୍ରିପ୍ସନ ID",
+        "issuedAt": "ଜାରି ସମୟ",
+        "appointment": "ଅପଏଣ୍ଟମେଣ୍ଟ",
+        "doctor": "ଡାକ୍ତର",
+        "speciality": "ବିଶେଷତା",
+        "clinic": "କ୍ଲିନିକ",
+        "patient": "ରୋଗୀ",
+        "diagnosis": "ନିଦାନ",
+        "notes": "ଟିପ୍ପଣୀ",
+        "medicines": "ଔଷଧଗୁଡିକ",
+        "attachedFile": "ସଂଲଗ୍ନ ଫାଇଲ"
+      }
     }
   }
 }

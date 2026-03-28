@@ -5,6 +5,11 @@
     "dashboard": "डैशबोर्ड",
     "findDoctors": "डॉक्टर खोजें",
     "aiSymptoms": "AI लक्षण जाँच",
+    "appointments": "अपॉइंटमेंट्स",
+    "telemedicine": "टेलीमेडिसिन",
+    "prescriptions": "प्रिस्क्रिप्शन्स",
+    "switchToLightMode": "लाइट मोड पर स्विच करें",
+    "switchToDarkMode": "डार्क मोड पर स्विच करें",
     "login": "लॉगिन",
     "logout": "लॉगआउट"
   },
@@ -190,6 +195,91 @@
     "errors": {
       "loadAppointments": "अपॉइंटमेंट लोड नहीं हो सके",
       "cancelAppointment": "अपॉइंटमेंट रद्द नहीं हो सका"
+    }
+  },
+
+  "prescription": {
+    "title": "डिजिटल प्रिस्क्रिप्शन",
+    "subtitleDoctor": "मरीजों के साथ प्रिस्क्रिप्शन साझा करें और रिपोर्ट फाइल भी जोड़ें।",
+    "subtitlePatient": "अपने डॉक्टरों द्वारा साझा किए गए प्रिस्क्रिप्शन देखें और रिपोर्ट डाउनलोड करें।",
+    "create": "प्रिस्क्रिप्शन बनाएं",
+    "issuedPrescriptions": "जारी प्रिस्क्रिप्शन",
+    "myPrescriptions": "मेरे प्रिस्क्रिप्शन",
+    "loadingPrescriptions": "प्रिस्क्रिप्शन लोड हो रहे हैं...",
+    "noPrescriptions": "अभी कोई प्रिस्क्रिप्शन नहीं है।",
+    "doctorName": "डॉ. {{name}}",
+    "issuedOn": "जारी:",
+    "downloadPdf": "PDF डाउनलोड करें",
+    "downloadFile": "फाइल डाउनलोड करें",
+    "messages": {
+      "created": "प्रिस्क्रिप्शन बनाया गया"
+    },
+    "errors": {
+      "fetchPrescriptions": "प्रिस्क्रिप्शन प्राप्त नहीं हो सके",
+      "fetchAppointments": "अपॉइंटमेंट प्राप्त नहीं हो सके",
+      "selectPatientFirst": "पहले मरीज/अपॉइंटमेंट चुनें",
+      "createFailed": "प्रिस्क्रिप्शन बन नहीं सका",
+      "createRequestFailed": "प्रिस्क्रिप्शन बन नहीं सका",
+      "watermarkFailed": "प्रिस्क्रिप्शन वॉटरमार्क तैयार नहीं हो सका"
+    },
+    "form": {
+      "appointment": "अपॉइंटमेंट",
+      "selectAppointment": "अपॉइंटमेंट चुनें",
+      "patientIdFallback": "मरीज आईडी (फॉलबैक)",
+      "patientIdPlaceholder": "मरीज ObjectId",
+      "diagnosis": "निदान",
+      "medicines": "दवाइयाँ",
+      "addMedicine": "दवा जोड़ें",
+      "medicine": "दवा",
+      "dosage": "खुराक",
+      "frequency": "आवृत्ति",
+      "duration": "अवधि",
+      "instructions": "निर्देश",
+      "additionalNotes": "अतिरिक्त नोट्स",
+      "attachFile": "फाइल जोड़ें (PDF/छवि)",
+      "creating": "बनाया जा रहा है...",
+      "createPrescription": "प्रिस्क्रिप्शन बनाएं"
+    },
+    "pdf": {
+      "na": "उपलब्ध नहीं",
+      "registeredPatient": "पंजीकृत मरीज",
+      "unknownDate": "अज्ञात तारीख",
+      "at": "पर",
+      "notLinked": "लिंक नहीं",
+      "title": "डॉक्टर प्रिस्क्रिप्शन",
+      "generatedAt": "जनरेट किया गया: {{date}}",
+      "notSpecified": "निर्दिष्ट नहीं",
+      "notProvided": "प्रदान नहीं किया गया",
+      "noMedicinesListed": "कोई दवा सूचीबद्ध नहीं",
+      "unnamedMedicine": "बिना नाम की दवा",
+      "emptyValue": "-",
+      "noFileAttached": "कोई फाइल संलग्न नहीं",
+      "unknownDoctor": "अज्ञात डॉक्टर",
+      "signatureValid": "हस्ताक्षर मान्य",
+      "digitallySignedBy": "डिजिटली हस्ताक्षरित: डॉ. {{name}}",
+      "dateLabel": "तारीख: {{date}}",
+      "reasonApprovedPrescription": "कारण: स्वीकृत प्रिस्क्रिप्शन",
+      "sections": {
+        "header": "प्रिस्क्रिप्शन हेडर",
+        "doctorDetails": "डॉक्टर विवरण",
+        "patientDetails": "मरीज विवरण",
+        "clinicalSummary": "क्लिनिकल सारांश",
+        "medicationPlan": "दवा योजना",
+        "attachments": "संलग्नक"
+      },
+      "fields": {
+        "prescriptionId": "प्रिस्क्रिप्शन आईडी",
+        "issuedAt": "जारी समय",
+        "appointment": "अपॉइंटमेंट",
+        "doctor": "डॉक्टर",
+        "speciality": "विशेषता",
+        "clinic": "क्लिनिक",
+        "patient": "मरीज",
+        "diagnosis": "निदान",
+        "notes": "नोट्स",
+        "medicines": "दवाइयाँ",
+        "attachedFile": "संलग्न फाइल"
+      }
     }
   }
 }
