@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import NavBar from "./nav/NavBar.jsx";
 import HomePage from "./components/Homepage.jsx";
 import Signup from "./components/auth/Signup.jsx";
@@ -53,6 +54,13 @@ function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
+        <Toaster
+          position="top-right"
+          gutter={10}
+          containerStyle={{ top: 78, right: 14 }}
+          toastOptions={{ duration: 4500 }}
+        />
+
         <NavBar />
         <FloatingAIButton />
 

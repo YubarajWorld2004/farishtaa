@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+const Razorpay = require('razorpay');
 const Appointment = require('../model/Appointment');
 const TelemedicineSession = require('../model/TelemedicineSession');
 const User = require('../model/User');
@@ -9,10 +11,94 @@ const {
 const BOOKED_STATUSES = ['pending', 'accepted'];
 const DOCTOR_STATUS_UPDATES = ['accepted', 'rejected', 'completed', 'closed'];
 const TERMINAL_APPOINTMENT_STATUSES = ['rejected', 'completed', 'closed'];
+const RAZORPAY_CURRENCY = 'INR';
+
+let razorpayClient = null;
+
+const createRequestError = (statusCode, message) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
+const getRazorpayClient = () => {
+  const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } = process.env;
+  if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+    return null;
+  }
+
+  if (!razorpayClient) {
+    razorpayClient = new Razorpay({
+      key_id: RAZORPAY_KEY_ID,
+      key_secret: RAZORPAY_KEY_SECRET,
+    });
+  }
+
+  return razorpayClient;
+};
+
+const parseDoctorFee = (doctor) => {
+  const fee = Number(doctor?.fee || 0);
+  if (!Number.isFinite(fee) || fee <= 0) return 0;
+  return Number(fee.toFixed(2));
+};
 
 const validateDateString = (value) => {
   if (!value || typeof value !== 'string') return false;
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
+};
+
+const getValidatedBookingContext = async ({ patientId, doctorId, appointmentDate, slotTime }) => {
+  if (!doctorId || !validateDateString(appointmentDate) || !slotTime) {
+    throw createRequestError(
+      400,
+      'doctorId, appointmentDate (YYYY-MM-DD), and slotTime are required'
+    );
+  }
+
+  const [doctor, patient] = await Promise.all([
+    User.findOne({ _id: doctorId, userType: 'Doctor' }).select('availability firstName lastName fee'),
+    User.findOne({ _id: patientId, userType: 'Patient' }).select('firstName lastName'),
+  ]);
+
+  if (!doctor) {
+    throw createRequestError(404, 'Doctor not found');
+  }
+
+  if (!patient) {
+    throw createRequestError(403, 'Only patients can book appointments');
+  }
+
+  const availableSlots = buildSlotsFromAvailability(doctor.availability, appointmentDate, 30);
+  if (availableSlots.length === 0) {
+    throw createRequestError(400, 'Doctor has not configured any slots for this date');
+  }
+
+  if (!availableSlots.includes(slotTime)) {
+    throw createRequestError(400, 'Selected slot is not available for this doctor');
+  }
+
+  const appointmentAt = toDateTimeFromDateAndLabel(appointmentDate, slotTime);
+  if (!appointmentAt) {
+    throw createRequestError(400, 'Invalid slotTime format');
+  }
+
+  const conflict = await Appointment.findOne({
+    doctor: doctorId,
+    appointmentDate,
+    slotTime,
+    status: { $in: BOOKED_STATUSES },
+  }).select('_id');
+
+  if (conflict) {
+    throw createRequestError(409, 'This slot is already booked');
+  }
+
+  return {
+    doctor,
+    patient,
+    appointmentAt,
+  };
 };
 
 const createSessionForAppointment = async (appointment) => {
@@ -125,43 +211,21 @@ exports.bookAppointment = async (req, res) => {
     const patientId = req.userId;
     const { doctorId, appointmentDate, slotTime, reason, meetingType } = req.body;
 
-    if (!doctorId || !validateDateString(appointmentDate) || !slotTime) {
-      return res.status(400).json({
-        message: 'doctorId, appointmentDate (YYYY-MM-DD), and slotTime are required',
-      });
-    }
-
-    const [doctor, patient] = await Promise.all([
-      User.findOne({ _id: doctorId, userType: 'Doctor' }).select('availability firstName lastName'),
-      User.findOne({ _id: patientId, userType: 'Patient' }).select('firstName lastName'),
-    ]);
-
-    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
-    if (!patient) return res.status(403).json({ message: 'Only patients can book appointments' });
-
-    const availableSlots = buildSlotsFromAvailability(doctor.availability, appointmentDate, 30);
-    if (availableSlots.length === 0) {
-      return res.status(400).json({ message: 'Doctor has not configured any slots for this date' });
-    }
-
-    if (!availableSlots.includes(slotTime)) {
-      return res.status(400).json({ message: 'Selected slot is not available for this doctor' });
-    }
-
-    const appointmentAt = toDateTimeFromDateAndLabel(appointmentDate, slotTime);
-    if (!appointmentAt) {
-      return res.status(400).json({ message: 'Invalid slotTime format' });
-    }
-
-    const conflict = await Appointment.findOne({
-      doctor: doctorId,
+    const { doctor, appointmentAt } = await getValidatedBookingContext({
+      patientId,
+      doctorId,
       appointmentDate,
       slotTime,
-      status: { $in: BOOKED_STATUSES },
-    }).select('_id');
+    });
 
-    if (conflict) {
-      return res.status(409).json({ message: 'This slot is already booked' });
+    const doctorFee = parseDoctorFee(doctor);
+    if (doctorFee > 0) {
+      return res.status(402).json({
+        message: 'Payment required before booking this appointment',
+        paymentRequired: true,
+        amount: Math.round(doctorFee * 100),
+        currency: RAZORPAY_CURRENCY,
+      });
     }
 
     const appointment = await Appointment.create({
@@ -173,6 +237,8 @@ exports.bookAppointment = async (req, res) => {
       status: 'pending',
       reason,
       meetingType: meetingType === 'in-person' ? 'in-person' : 'online',
+      paymentRequired: false,
+      paymentStatus: 'not_required',
     });
 
     const populated = await Appointment.findById(appointment._id)
@@ -184,7 +250,172 @@ exports.bookAppointment = async (req, res) => {
       appointment: populated,
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
     return res.status(500).json({ message: 'Failed to book appointment', error: error.message });
+  }
+};
+
+exports.createAppointmentPaymentOrder = async (req, res) => {
+  try {
+    const patientId = req.userId;
+    const { doctorId, appointmentDate, slotTime } = req.body;
+    const razorpay = getRazorpayClient();
+
+    if (!razorpay) {
+      return res.status(500).json({ message: 'Payment gateway is not configured on server' });
+    }
+
+    const { doctor } = await getValidatedBookingContext({
+      patientId,
+      doctorId,
+      appointmentDate,
+      slotTime,
+    });
+
+    const doctorFee = parseDoctorFee(doctor);
+    if (doctorFee <= 0) {
+      return res.status(400).json({ message: 'This doctor does not require online payment' });
+    }
+
+    const amount = Math.round(doctorFee * 100);
+    const order = await razorpay.orders.create({
+      amount,
+      currency: RAZORPAY_CURRENCY,
+      receipt: `appt_${Date.now()}_${String(patientId).slice(-6)}`,
+      notes: {
+        doctorId: String(doctorId),
+        patientId: String(patientId),
+        appointmentDate,
+        slotTime,
+      },
+    });
+
+    return res.status(201).json({
+      message: 'Payment order created',
+      keyId: process.env.RAZORPAY_KEY_ID,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      doctorFee,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    return res.status(500).json({ message: 'Failed to create payment order', error: error.message });
+  }
+};
+
+exports.verifyAppointmentPaymentAndBook = async (req, res) => {
+  try {
+    const patientId = req.userId;
+    const {
+      doctorId,
+      appointmentDate,
+      slotTime,
+      reason,
+      meetingType,
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+    } = req.body;
+
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      return res.status(400).json({
+        message: 'razorpayOrderId, razorpayPaymentId, and razorpaySignature are required',
+      });
+    }
+
+    const razorpay = getRazorpayClient();
+    if (!razorpay || !process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(500).json({ message: 'Payment gateway is not configured on server' });
+    }
+
+    const { doctor, appointmentAt } = await getValidatedBookingContext({
+      patientId,
+      doctorId,
+      appointmentDate,
+      slotTime,
+    });
+
+    const doctorFee = parseDoctorFee(doctor);
+    if (doctorFee <= 0) {
+      return res.status(400).json({ message: 'This doctor does not require online payment' });
+    }
+
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+      .digest('hex');
+
+    const providedSignature = String(razorpaySignature);
+    const signaturesMatch =
+      expectedSignature.length === providedSignature.length &&
+      crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(providedSignature));
+
+    if (!signaturesMatch) {
+      return res.status(400).json({ message: 'Payment signature verification failed' });
+    }
+
+    const payment = await razorpay.payments.fetch(razorpayPaymentId);
+    if (!payment || payment.order_id !== razorpayOrderId) {
+      return res.status(400).json({ message: 'Payment details do not match the order' });
+    }
+
+    if (!['captured', 'authorized'].includes(payment.status)) {
+      return res.status(400).json({ message: 'Payment is not completed yet' });
+    }
+
+    const expectedAmount = Math.round(doctorFee * 100);
+    if (payment.amount !== expectedAmount) {
+      return res.status(400).json({ message: 'Payment amount mismatch' });
+    }
+
+    if ((payment.currency || '').toUpperCase() !== RAZORPAY_CURRENCY) {
+      return res.status(400).json({ message: 'Payment currency mismatch' });
+    }
+
+    const existingPayment = await Appointment.findOne({ paymentId: razorpayPaymentId }).select('_id');
+    if (existingPayment) {
+      return res.status(409).json({ message: 'This payment has already been used for booking' });
+    }
+
+    const appointment = await Appointment.create({
+      doctor: doctorId,
+      patient: patientId,
+      appointmentDate,
+      slotTime,
+      appointmentAt,
+      status: 'pending',
+      reason,
+      meetingType: meetingType === 'in-person' ? 'in-person' : 'online',
+      paymentRequired: true,
+      paymentStatus: 'paid',
+      paymentProvider: 'razorpay',
+      paymentOrderId: razorpayOrderId,
+      paymentId: razorpayPaymentId,
+      paymentAmount: payment.amount,
+      paymentCurrency: payment.currency,
+      paidAt: new Date(),
+    });
+
+    const populated = await Appointment.findById(appointment._id)
+      .populate({ path: 'doctor', select: 'firstName lastName specialist fee clinicName' })
+      .populate({ path: 'patient', select: 'firstName lastName' });
+
+    return res.status(201).json({
+      message: 'Payment successful and appointment request sent.',
+      appointment: populated,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    return res
+      .status(500)
+      .json({ message: 'Failed to verify payment and book appointment', error: error.message });
   }
 };
 

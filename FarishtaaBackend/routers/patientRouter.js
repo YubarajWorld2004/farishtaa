@@ -17,6 +17,8 @@ patientRouter.get('/symptoms/:userId/:sessionId', patientController.getPreviousC
 
 // Appointment booking and status
 patientRouter.get('/appointments/doctor/:doctorId/slots', appointmentController.getDoctorSlots);
+patientRouter.post('/appointments/payment/order', appointmentController.createAppointmentPaymentOrder);
+patientRouter.post('/appointments/payment/verify-and-book', appointmentController.verifyAppointmentPaymentAndBook);
 patientRouter.post('/appointments/book', appointmentController.bookAppointment);
 patientRouter.get('/appointments', appointmentController.getPatientAppointments);
 patientRouter.patch('/appointments/:appointmentId/cancel', appointmentController.cancelPatientAppointment);

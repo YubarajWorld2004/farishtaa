@@ -38,6 +38,10 @@ const DoctorProfile = () => {
   const dispatch = useDispatch();
 
   const isPatientLoggedIn = token && userType === "Patient";
+  const canBookAppointment = Boolean(
+    isPatientLoggedIn &&
+      (doctor?.canBookAppointment ?? doctor?._isUserDoctor ?? Array.isArray(doctor?.availability))
+  );
 
   useEffect(() => {
     const fetchDoctor = async () => {
@@ -223,7 +227,7 @@ const DoctorProfile = () => {
                 </button>
               )}
 
-              {isPatientLoggedIn && (
+              {canBookAppointment && (
                 <button
                   onClick={() => navigate(`/appointments/book/${doctor._id}`)}
                   className="mt-3 ml-0 sm:ml-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition"
@@ -231,6 +235,12 @@ const DoctorProfile = () => {
                   <HiOutlineCalendar size={14} />
                   Book Online Appointment
                 </button>
+              )}
+
+              {isPatientLoggedIn && !canBookAppointment && (
+                <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
+                  Online appointment booking is currently unavailable for this profile.
+                </p>
               )}
 
               <div className="mt-4 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/30 p-3 sm:p-4">

@@ -94,6 +94,7 @@ const findUserDoctorsNearby=async (lat,lng,specialist,radius)=>{
     reviews: u.doctorReviews,
     availability: u.availability,
     _isUserDoctor: true,
+    canBookAppointment: true,
   }));
 }
 const loadFromOsm = async (lat, lng, radius) => {
@@ -257,6 +258,7 @@ exports.getDoctorById=async (req,res,next)=>{
     const {doctorId}=req.params;
   console.log("Doctor Id : ", doctorId)
    let details;
+   let sourceModel = null;
         details=await Doctor.findById(doctorId).populate({
             path : 'reviews',
             select : "rating review createdAt",
@@ -265,6 +267,9 @@ exports.getDoctorById=async (req,res,next)=>{
                 select : "firstName lastName"
             }
         });
+          if(details){
+            sourceModel = "legacyDoctor";
+          }
           if(!details){
              details=await Hospital.findById(doctorId).populate({
                 path : 'reviews',
@@ -274,6 +279,9 @@ exports.getDoctorById=async (req,res,next)=>{
                 select : "firstName lastName"
             }
             });
+            if(details){
+              sourceModel = "hospital";
+            }
 
           }
           if(!details){
@@ -281,6 +289,7 @@ exports.getDoctorById=async (req,res,next)=>{
             const userDoc = await User.findOne({ _id: doctorId, userType: "Doctor", profileCompleted: true })
               .populate({ path: 'doctorReviews', select: 'rating review createdAt', populate: { path: 'patientId', select: 'firstName lastName' } });
             if(userDoc) {
+              sourceModel = "userDoctor";
               details = {
                 _id: userDoc._id,
                 name: `${userDoc.firstName} ${userDoc.lastName}`,
@@ -297,13 +306,22 @@ exports.getDoctorById=async (req,res,next)=>{
                 clinicName: userDoc.clinicName,
                 availability: userDoc.availability,
                 reviews: userDoc.doctorReviews,
+                _isUserDoctor: true,
+                canBookAppointment: true,
               };
             }
           }
           if(!details){
           return res.status(404).json({error : "Doctor Not Found"});
           }
-    return res.status(200).json({doctor:details});
+
+    const doctorPayload = typeof details.toObject === "function" ? details.toObject() : details;
+    if(sourceModel !== "userDoctor"){
+      doctorPayload._isUserDoctor = false;
+      doctorPayload.canBookAppointment = false;
+    }
+
+    return res.status(200).json({doctor:doctorPayload});
     }catch(error){
       res.status(400).json({error : "Not known"});
     }

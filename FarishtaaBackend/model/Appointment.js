@@ -16,6 +16,18 @@ const appointmentSchema = new mongoose.Schema(
     meetingType: { type: String, enum: ['online', 'in-person'], default: 'online' },
     doctorResponseNote: { type: String },
     telemedicineSession: { type: mongoose.Schema.Types.ObjectId, ref: 'TelemedicineSession' },
+    paymentRequired: { type: Boolean, default: false },
+    paymentStatus: {
+      type: String,
+      enum: ['not_required', 'pending', 'paid', 'failed', 'refunded'],
+      default: 'not_required',
+    },
+    paymentProvider: { type: String },
+    paymentOrderId: { type: String },
+    paymentId: { type: String },
+    paymentAmount: { type: Number },
+    paymentCurrency: { type: String, default: 'INR' },
+    paidAt: { type: Date },
   },
   { timestamps: true }
 );
@@ -23,5 +35,6 @@ const appointmentSchema = new mongoose.Schema(
 appointmentSchema.index({ doctor: 1, appointmentDate: 1, slotTime: 1 });
 appointmentSchema.index({ patient: 1, appointmentAt: -1 });
 appointmentSchema.index({ doctor: 1, appointmentAt: -1 });
+appointmentSchema.index({ paymentId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Appointment', appointmentSchema);
