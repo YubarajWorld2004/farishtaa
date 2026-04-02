@@ -67,6 +67,22 @@ const formatInr = (amount) => {
   }).format(safeAmount);
 };
 
+const getRelativeBookingSummary = (appointment) => {
+  if (appointment?.appointmentFor !== "relative") return "";
+
+  const name = String(appointment?.relativeDetails?.name || "").trim();
+  const age = Number.parseInt(appointment?.relativeDetails?.age, 10);
+  const relation = String(appointment?.relativeDetails?.relation || "").trim();
+
+  const details = [];
+  if (name) details.push(name);
+  if (Number.isFinite(age)) details.push(`${age} yrs`);
+  if (relation) details.push(relation);
+
+  if (details.length === 0) return "Booked for relative";
+  return `Booked for relative: ${details.join(" • ")}`;
+};
+
 const LOAD_ERROR_MESSAGE = "Failed to load appointments";
 const UPDATE_ERROR_MESSAGE = "Failed to update appointment status";
 
@@ -339,6 +355,18 @@ const DoctorAppointments = () => {
                         {appointment.slotTime}
                       </span>
                     </div>
+
+                    {appointment.appointmentFor === "relative" && (
+                      <p className="text-sm text-amber-700 dark:text-amber-300">
+                        {getRelativeBookingSummary(appointment)}
+                      </p>
+                    )}
+
+                    {appointment.relativeDetails?.importantNotes && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Important notes: {appointment.relativeDetails.importantNotes}
+                      </p>
+                    )}
 
                     {appointment.reason && (
                       <p className="text-sm text-gray-500 dark:text-gray-400">

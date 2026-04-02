@@ -12,6 +12,17 @@ const appointmentSchema = new mongoose.Schema(
       enum: ['pending', 'accepted', 'rejected', 'cancelled', 'completed', 'closed'],
       default: 'pending',
     },
+    appointmentFor: {
+      type: String,
+      enum: ['self', 'relative'],
+      default: 'self',
+    },
+    relativeDetails: {
+      name: { type: String, trim: true, maxlength: 120 },
+      age: { type: Number, min: 0, max: 130 },
+      relation: { type: String, trim: true, maxlength: 60 },
+      importantNotes: { type: String, trim: true, maxlength: 300 },
+    },
     reason: { type: String },
     meetingType: { type: String, enum: ['online', 'in-person'], default: 'online' },
     doctorResponseNote: { type: String },

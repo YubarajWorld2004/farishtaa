@@ -49,9 +49,23 @@ const BookAppointment = () => {
   const [selectedSlot, setSelectedSlot] = useState("");
   const [reason, setReason] = useState("");
   const [meetingType, setMeetingType] = useState("online");
+  const [appointmentFor, setAppointmentFor] = useState("self");
+  const [relativeName, setRelativeName] = useState("");
+  const [relativeAge, setRelativeAge] = useState("");
+  const [relativeRelation, setRelativeRelation] = useState("");
+  const [relativeImportantThings, setRelativeImportantThings] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  const isBookingForRelative = appointmentFor === "relative";
+  const relativeAgeNumber = Number.parseInt(relativeAge, 10);
+  const hasValidRelativeDetails =
+    !isBookingForRelative ||
+    (relativeName.trim().length > 0 &&
+      Number.isFinite(relativeAgeNumber) &&
+      relativeAgeNumber >= 0 &&
+      relativeAgeNumber <= 130);
 
   const isDoctorBookable = useMemo(() => {
     if (!doctor) return false;
@@ -61,8 +75,8 @@ const BookAppointment = () => {
   }, [doctor]);
 
   const canBook = useMemo(
-    () => isDoctorBookable && !!selectedSlot && !!appointmentDate && !submitting,
-    [isDoctorBookable, selectedSlot, appointmentDate, submitting]
+    () => isDoctorBookable && !!selectedSlot && !!appointmentDate && hasValidRelativeDetails && !submitting,
+    [isDoctorBookable, selectedSlot, appointmentDate, hasValidRelativeDetails, submitting]
   );
 
   const consultationFee = useMemo(() => {
@@ -161,6 +175,14 @@ const BookAppointment = () => {
     loadSlots();
   }, [doctor, doctorId, appointmentDate, token, isDoctorBookable, apiBaseUrl]);
 
+  useEffect(() => {
+    if (appointmentFor === "relative") return;
+    setRelativeName("");
+    setRelativeAge("");
+    setRelativeRelation("");
+    setRelativeImportantThings("");
+  }, [appointmentFor]);
+
   const handleBook = async (e) => {
     e.preventDefault();
     if (!canBook) return;
@@ -168,6 +190,29 @@ const BookAppointment = () => {
     try {
       setSubmitting(true);
       setError("");
+
+      if (isBookingForRelative && !hasValidRelativeDetails) {
+        const message = "Please enter valid relative details (name and age).";
+        setError(message);
+        notifyError("Relative details missing", message, { push: true });
+        return;
+      }
+
+      const bookingPayload = {
+        doctorId,
+        appointmentDate,
+        slotTime: selectedSlot,
+        reason,
+        meetingType,
+        appointmentFor,
+      };
+
+      if (isBookingForRelative) {
+        bookingPayload.relativeName = relativeName.trim();
+        bookingPayload.relativeAge = relativeAgeNumber;
+        bookingPayload.relativeRelation = relativeRelation.trim();
+        bookingPayload.relativeImportantThings = relativeImportantThings.trim();
+      }
 
       if (consultationFee > 0) {
         const orderRes = await fetch(`${apiBaseUrl}/api/patient/appointments/payment/order`, {
@@ -239,11 +284,7 @@ const BookAppointment = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            doctorId,
-            appointmentDate,
-            slotTime: selectedSlot,
-            reason,
-            meetingType,
+            ...bookingPayload,
             razorpayOrderId: paymentResult.razorpay_order_id,
             razorpayPaymentId: paymentResult.razorpay_payment_id,
             razorpaySignature: paymentResult.razorpay_signature,
@@ -276,13 +317,7 @@ const BookAppointment = () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          doctorId,
-          appointmentDate,
-          slotTime: selectedSlot,
-          reason,
-          meetingType,
-        }),
+        body: JSON.stringify(bookingPayload),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -392,6 +427,85 @@ const BookAppointment = () => {
               <option value="in-person">In-person Visit</option>
             </select>
           </label>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Booking For</p>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setAppointmentFor("self")}
+              className={`px-3 py-2 rounded-lg text-sm border transition ${
+                appointmentFor === "self"
+                  ? "bg-red-600 text-white border-red-600"
+                  : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600"
+              }`}
+            >
+              Myself
+            </button>
+            <button
+              type="button"
+              onClick={() => setAppointmentFor("relative")}
+              className={`px-3 py-2 rounded-lg text-sm border transition ${
+                appointmentFor === "relative"
+                  ? "bg-red-600 text-white border-red-600"
+                  : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600"
+              }`}
+            >
+              Relative
+            </button>
+          </div>
+
+          {isBookingForRelative && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Relative Name</span>
+                <input
+                  type="text"
+                  value={relativeName}
+                  onChange={(e) => setRelativeName(e.target.value)}
+                  className="mt-1.5 w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="Enter full name"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Relative Age</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={130}
+                  value={relativeAge}
+                  onChange={(e) => setRelativeAge(e.target.value)}
+                  className="mt-1.5 w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="Enter age"
+                />
+              </label>
+
+              <label className="block sm:col-span-2">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Relation with Patient (Optional)</span>
+                <input
+                  type="text"
+                  value={relativeRelation}
+                  onChange={(e) => setRelativeRelation(e.target.value)}
+                  className="mt-1.5 w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="Example: Father, Mother, Brother"
+                />
+              </label>
+
+              <label className="block sm:col-span-2">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Important Things for Doctor (Optional)</span>
+                <textarea
+                  rows={3}
+                  value={relativeImportantThings}
+                  onChange={(e) => setRelativeImportantThings(e.target.value)}
+                  className="mt-1.5 w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="Any important details, allergies, medical history, or ongoing medicines"
+                />
+              </label>
+            </div>
+          )}
         </div>
 
         <div>

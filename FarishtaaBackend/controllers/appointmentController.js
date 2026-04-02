@@ -30,16 +30,73 @@ const safeReasonPreview = (reason) => {
   return trimmed;
 };
 
+const sanitizeText = (value, maxLength) => String(value || '').trim().slice(0, maxLength);
+
+const parseAppointmentAudience = ({
+  appointmentFor,
+  relativeName,
+  relativeAge,
+  relativeRelation,
+  relativeImportantThings,
+}) => {
+  const bookingTarget = appointmentFor === 'relative' ? 'relative' : 'self';
+
+  if (bookingTarget !== 'relative') {
+    return {
+      appointmentFor: 'self',
+      relativeDetails: undefined,
+    };
+  }
+
+  const name = sanitizeText(relativeName, 120);
+  const relation = sanitizeText(relativeRelation, 60);
+  const importantNotes = sanitizeText(relativeImportantThings, 300);
+  const parsedAge = Number.parseInt(relativeAge, 10);
+
+  if (!name) {
+    throw createRequestError(400, 'Relative name is required when booking for relative');
+  }
+
+  if (!Number.isFinite(parsedAge) || parsedAge < 0 || parsedAge > 130) {
+    throw createRequestError(400, 'Relative age must be between 0 and 130');
+  }
+
+  return {
+    appointmentFor: 'relative',
+    relativeDetails: {
+      name,
+      age: parsedAge,
+      relation: relation || undefined,
+      importantNotes: importantNotes || undefined,
+    },
+  };
+};
+
+const getRelativeDescriptor = (appointment) => {
+  if (appointment?.appointmentFor !== 'relative') return '';
+
+  const relativeName = sanitizeText(appointment?.relativeDetails?.name, 80);
+  const age = Number.parseInt(appointment?.relativeDetails?.age, 10);
+  const agePart = Number.isFinite(age) ? `, age ${age}` : '';
+
+  if (relativeName) {
+    return ` for ${relativeName}${agePart}`;
+  }
+
+  return ' for a relative';
+};
+
 const notifyDoctorAboutNewAppointment = async ({ appointment, patientProfile, patientId, reason }) => {
   const patientName = formatPersonName(patientProfile, 'A patient');
   const reasonPreview = safeReasonPreview(reason);
+  const relativeDescriptor = getRelativeDescriptor(appointment);
 
   await createNotification({
     recipientId: appointment.doctor,
     senderId: patientId,
     type: 'appointment_status',
     title: 'New appointment request',
-    message: `${patientName} requested an appointment on ${appointment.appointmentDate} at ${appointment.slotTime}.${
+    message: `${patientName} requested an appointment${relativeDescriptor} on ${appointment.appointmentDate} at ${appointment.slotTime}.${
       reasonPreview ? ` Reason: ${reasonPreview}` : ''
     }`,
     meta: {
@@ -249,7 +306,26 @@ exports.getDoctorSlots = async (req, res) => {
 exports.bookAppointment = async (req, res) => {
   try {
     const patientId = req.userId;
-    const { doctorId, appointmentDate, slotTime, reason, meetingType } = req.body;
+    const {
+      doctorId,
+      appointmentDate,
+      slotTime,
+      reason,
+      meetingType,
+      appointmentFor,
+      relativeName,
+      relativeAge,
+      relativeRelation,
+      relativeImportantThings,
+    } = req.body;
+
+    const audienceDetails = parseAppointmentAudience({
+      appointmentFor,
+      relativeName,
+      relativeAge,
+      relativeRelation,
+      relativeImportantThings,
+    });
 
     const { doctor, patient, appointmentAt } = await getValidatedBookingContext({
       patientId,
@@ -277,6 +353,7 @@ exports.bookAppointment = async (req, res) => {
       status: 'pending',
       reason,
       meetingType: meetingType === 'in-person' ? 'in-person' : 'online',
+      ...audienceDetails,
       paymentRequired: false,
       paymentStatus: 'not_required',
     });
@@ -368,10 +445,23 @@ exports.verifyAppointmentPaymentAndBook = async (req, res) => {
       slotTime,
       reason,
       meetingType,
+      appointmentFor,
+      relativeName,
+      relativeAge,
+      relativeRelation,
+      relativeImportantThings,
       razorpayOrderId,
       razorpayPaymentId,
       razorpaySignature,
     } = req.body;
+
+    const audienceDetails = parseAppointmentAudience({
+      appointmentFor,
+      relativeName,
+      relativeAge,
+      relativeRelation,
+      relativeImportantThings,
+    });
 
     if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
       return res.status(400).json({
@@ -442,6 +532,7 @@ exports.verifyAppointmentPaymentAndBook = async (req, res) => {
       status: 'pending',
       reason,
       meetingType: meetingType === 'in-person' ? 'in-person' : 'online',
+      ...audienceDetails,
       paymentRequired: true,
       paymentStatus: 'paid',
       paymentProvider: 'razorpay',
