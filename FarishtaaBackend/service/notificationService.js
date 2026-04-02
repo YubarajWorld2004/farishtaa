@@ -4,48 +4,54 @@ const { sendFcmPushToUser } = require('./pushNotificationService');
 
 const sanitizeText = (value, maxLength) => String(value || '').trim().slice(0, maxLength);
 
-const buildNotificationRoute = (type) => {
+const buildNotificationRoute = (type, meta = {}) => {
+  if (meta && typeof meta.route === 'string' && meta.route.trim()) {
+    return meta.route.trim();
+  }
+
   if (type === 'telemedicine_message') {
     return '/telemedicine';
   }
   return '/appointments';
 };
 
-exports.createPatientNotification = async ({
-  patientId,
+exports.createNotification = async ({
+  recipientId,
   senderId = null,
   type = 'system',
   title,
   message,
   meta = {},
 }) => {
-  if (!patientId || !title || !message) return null;
+  if (!recipientId || !title || !message) return null;
+
+  const safeMeta = meta && typeof meta === 'object' ? meta : {};
 
   const notification = await Notification.create({
-    recipient: patientId,
+    recipient: recipientId,
     sender: senderId || undefined,
     type,
     title: sanitizeText(title, 160),
     message: sanitizeText(message, 500),
-    meta: meta && typeof meta === 'object' ? meta : {},
+    meta: safeMeta,
   });
 
-  const unreadCount = await Notification.countDocuments({ recipient: patientId, isRead: false });
-  const route = buildNotificationRoute(type);
+  const unreadCount = await Notification.countDocuments({ recipient: recipientId, isRead: false });
+  const route = buildNotificationRoute(type, safeMeta);
 
-  emitToUser(patientId, 'notification:new', {
+  emitToUser(recipientId, 'notification:new', {
     notification,
     unreadCount,
   });
 
   try {
     await sendFcmPushToUser({
-      userId: patientId,
+      userId: recipientId,
       title: notification.title,
       body: notification.message,
       data: {
-        notificationId: notification._id,
-        type,
+        notificationId: String(notification._id),
+        type: String(type),
         route,
       },
     });
@@ -55,3 +61,9 @@ exports.createPatientNotification = async ({
 
   return notification;
 };
+
+exports.createPatientNotification = async ({ patientId, ...rest }) =>
+  exports.createNotification({
+    recipientId: patientId,
+    ...rest,
+  });

@@ -25,9 +25,9 @@ patientRouter.get('/appointments', appointmentController.getPatientAppointments)
 patientRouter.patch('/appointments/:appointmentId/cancel', appointmentController.cancelPatientAppointment);
 
 // Patient notifications
-patientRouter.get('/notifications', notificationController.getPatientNotifications);
-patientRouter.patch('/notifications/read-all', notificationController.markAllPatientNotificationsRead);
-patientRouter.patch('/notifications/:notificationId/read', notificationController.markPatientNotificationRead);
+patientRouter.get('/notifications', notificationController.getMyNotifications);
+patientRouter.patch('/notifications/read-all', notificationController.markAllMyNotificationsRead);
+patientRouter.patch('/notifications/:notificationId/read', notificationController.markMyNotificationRead);
 
 // Telemedicine sessions and messages
 patientRouter.get('/telemedicine/sessions', telemedicineController.getPatientTelemedicineSessions);

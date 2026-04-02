@@ -3,7 +3,7 @@ const Razorpay = require('razorpay');
 const Appointment = require('../model/Appointment');
 const TelemedicineSession = require('../model/TelemedicineSession');
 const User = require('../model/User');
-const { createPatientNotification } = require('../service/notificationService');
+const { createNotification } = require('../service/notificationService');
 const {
   buildSlotsFromAvailability,
   toDateTimeFromDateAndLabel,
@@ -18,6 +18,39 @@ const APPOINTMENT_STATUS_MESSAGES = {
   rejected: 'rejected your appointment request',
   completed: 'marked your appointment as completed',
   closed: 'closed your appointment',
+};
+
+const formatPersonName = (profile, fallback) =>
+  `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() || fallback;
+
+const safeReasonPreview = (reason) => {
+  const trimmed = String(reason || '').trim();
+  if (!trimmed) return '';
+  if (trimmed.length > 90) return `${trimmed.slice(0, 87)}...`;
+  return trimmed;
+};
+
+const notifyDoctorAboutNewAppointment = async ({ appointment, patientProfile, patientId, reason }) => {
+  const patientName = formatPersonName(patientProfile, 'A patient');
+  const reasonPreview = safeReasonPreview(reason);
+
+  await createNotification({
+    recipientId: appointment.doctor,
+    senderId: patientId,
+    type: 'appointment_status',
+    title: 'New appointment request',
+    message: `${patientName} requested an appointment on ${appointment.appointmentDate} at ${appointment.slotTime}.${
+      reasonPreview ? ` Reason: ${reasonPreview}` : ''
+    }`,
+    meta: {
+      appointmentId: appointment._id,
+      status: appointment.status,
+      appointmentDate: appointment.appointmentDate,
+      slotTime: appointment.slotTime,
+      meetingType: appointment.meetingType,
+      route: '/doctor-dashboard/appointments',
+    },
+  });
 };
 
 let razorpayClient = null;
@@ -218,7 +251,7 @@ exports.bookAppointment = async (req, res) => {
     const patientId = req.userId;
     const { doctorId, appointmentDate, slotTime, reason, meetingType } = req.body;
 
-    const { doctor, appointmentAt } = await getValidatedBookingContext({
+    const { doctor, patient, appointmentAt } = await getValidatedBookingContext({
       patientId,
       doctorId,
       appointmentDate,
@@ -247,6 +280,17 @@ exports.bookAppointment = async (req, res) => {
       paymentRequired: false,
       paymentStatus: 'not_required',
     });
+
+    try {
+      await notifyDoctorAboutNewAppointment({
+        appointment,
+        patientProfile: patient,
+        patientId,
+        reason,
+      });
+    } catch (notificationError) {
+      console.error('Failed to create doctor appointment request notification:', notificationError.message);
+    }
 
     const populated = await Appointment.findById(appointment._id)
       .populate({ path: 'doctor', select: 'firstName lastName specialist fee clinicName' })
@@ -340,7 +384,7 @@ exports.verifyAppointmentPaymentAndBook = async (req, res) => {
       return res.status(500).json({ message: 'Payment gateway is not configured on server' });
     }
 
-    const { doctor, appointmentAt } = await getValidatedBookingContext({
+    const { doctor, patient, appointmentAt } = await getValidatedBookingContext({
       patientId,
       doctorId,
       appointmentDate,
@@ -408,6 +452,17 @@ exports.verifyAppointmentPaymentAndBook = async (req, res) => {
       paidAt: new Date(),
     });
 
+    try {
+      await notifyDoctorAboutNewAppointment({
+        appointment,
+        patientProfile: patient,
+        patientId,
+        reason,
+      });
+    } catch (notificationError) {
+      console.error('Failed to create paid appointment request notification for doctor:', notificationError.message);
+    }
+
     const populated = await Appointment.findById(appointment._id)
       .populate({ path: 'doctor', select: 'firstName lastName specialist fee clinicName' })
       .populate({ path: 'patient', select: 'firstName lastName' });
@@ -455,6 +510,29 @@ exports.cancelPatientAppointment = async (req, res) => {
     appointment.status = 'cancelled';
     await closeSessionForAppointment(appointment);
     await appointment.save();
+
+    const patientProfile = await User.findById(req.userId).select('firstName lastName');
+    const patientName = formatPersonName(patientProfile, 'A patient');
+
+    try {
+      await createNotification({
+        recipientId: appointment.doctor,
+        senderId: req.userId,
+        type: 'appointment_status',
+        title: 'Appointment cancelled',
+        message: `${patientName} cancelled the appointment scheduled on ${appointment.appointmentDate} at ${appointment.slotTime}.`,
+        meta: {
+          appointmentId: appointment._id,
+          status: appointment.status,
+          appointmentDate: appointment.appointmentDate,
+          slotTime: appointment.slotTime,
+          meetingType: appointment.meetingType,
+          route: '/doctor-dashboard/appointments',
+        },
+      });
+    } catch (notificationError) {
+      console.error('Failed to create doctor cancellation notification:', notificationError.message);
+    }
 
     return res.status(200).json({
       message: 'Appointment cancelled successfully',
@@ -534,8 +612,8 @@ exports.updateAppointmentStatus = async (req, res) => {
         APPOINTMENT_STATUS_MESSAGES[status] || `updated your appointment status to ${status}`;
 
       try {
-        await createPatientNotification({
-          patientId: appointment.patient,
+        await createNotification({
+          recipientId: appointment.patient,
           senderId: req.userId,
           type: 'appointment_status',
           title: 'Appointment status updated',

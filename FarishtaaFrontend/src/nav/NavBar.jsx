@@ -16,6 +16,7 @@ import { TbShieldCheckeredFilled } from "react-icons/tb";
 import { HiMenu, HiX, HiOutlineCalendar, HiOutlineVideoCamera, HiOutlineDocumentText } from "react-icons/hi";
 import { FiSun, FiMoon } from "react-icons/fi";
 import PatientNotificationBell from "../components/common/PatientNotificationBell.jsx";
+import DoctorNotificationBell from "../components/common/DoctorNotificationBell.jsx";
 
 const NavBar = () => {
   const dispatch = useDispatch();
@@ -130,6 +131,7 @@ const NavBar = () => {
         {/* Right Actions */}
         <div className="flex items-center gap-1.5 sm:gap-3">
           <PatientNotificationBell />
+          <DoctorNotificationBell />
 
           {/* Dark mode toggle */}
           <button

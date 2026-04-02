@@ -2,7 +2,7 @@ const TelemedicineSession = require('../model/TelemedicineSession');
 const TelemedicineMessage = require('../model/TelemedicineMessage');
 const Appointment = require('../model/Appointment');
 const { toPublicUploadUrl } = require('../middleware/upload');
-const { createPatientNotification } = require('../service/notificationService');
+const { createNotification } = require('../service/notificationService');
 
 const mapFilesToAttachments = (files = []) =>
   files.map((file) => ({
@@ -13,6 +13,9 @@ const mapFilesToAttachments = (files = []) =>
   }));
 
 const PATIENT_BLOCKED_APPOINTMENT_STATUSES = ['rejected', 'completed', 'cancelled', 'closed'];
+
+const formatPersonName = (profile, fallback) =>
+  `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() || fallback;
 
 const ensureSessionAccess = async (sessionId, userId, userType) => {
   const session = await TelemedicineSession.findById(sessionId).populate({
@@ -142,6 +145,32 @@ exports.sendPatientTelemedicineMessage = async (req, res) => {
       select: 'firstName lastName userType',
     });
 
+    const senderName = formatPersonName(populated?.sender, 'Patient');
+    const trimmedContent = content.trim();
+    const preview = trimmedContent
+      ? trimmedContent.length > 120
+        ? `${trimmedContent.slice(0, 117)}...`
+        : trimmedContent
+      : 'sent an attachment in telemedicine chat';
+
+    try {
+      await createNotification({
+        recipientId: access.session.doctor,
+        senderId: req.userId,
+        type: 'telemedicine_message',
+        title: 'New patient telemedicine message',
+        message: `${senderName}: ${preview}`,
+        meta: {
+          sessionId,
+          appointmentId: access.session?.appointment?._id || access.session?.appointment,
+          messageId: message._id,
+          route: '/telemedicine',
+        },
+      });
+    } catch (notificationError) {
+      console.error('Failed to create doctor telemedicine notification:', notificationError.message);
+    }
+
     return res.status(201).json({ message: populated });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to send message', error: error.message });
@@ -192,8 +221,8 @@ exports.sendDoctorTelemedicineMessage = async (req, res) => {
       : 'sent you an attachment in telemedicine chat';
 
     try {
-      await createPatientNotification({
-        patientId: access.session.patient,
+      await createNotification({
+        recipientId: access.session.patient,
         senderId: req.userId,
         type: 'telemedicine_message',
         title: 'New telemedicine message',
@@ -202,6 +231,7 @@ exports.sendDoctorTelemedicineMessage = async (req, res) => {
           sessionId,
           appointmentId: access.session?.appointment?._id || access.session?.appointment,
           messageId: message._id,
+          route: '/telemedicine',
         },
       });
     } catch (notificationError) {

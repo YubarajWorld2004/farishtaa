@@ -4,6 +4,7 @@ const dashboardController = require('../controllers/doctorDashboardController');
 const appointmentController = require('../controllers/appointmentController');
 const telemedicineController = require('../controllers/telemedicineController');
 const prescriptionController = require('../controllers/prescriptionController');
+const notificationController = require('../controllers/notificationController');
 const { uploadTelemedicineFiles, uploadPrescriptionFile } = require('../middleware/upload');
 
 router.get('/profile', dashboardController.getDoctorProfile);
@@ -27,5 +28,10 @@ router.post(
 // Digital prescriptions
 router.get('/prescriptions', prescriptionController.getDoctorPrescriptions);
 router.post('/prescriptions', uploadPrescriptionFile.single('file'), prescriptionController.createPrescription);
+
+// Doctor notifications
+router.get('/notifications', notificationController.getMyNotifications);
+router.patch('/notifications/read-all', notificationController.markAllMyNotificationsRead);
+router.patch('/notifications/:notificationId/read', notificationController.markMyNotificationRead);
 
 module.exports = router;

@@ -9,7 +9,7 @@ const parseLimit = (value, fallback = 20, max = 100) => {
 
 const parseBoolean = (value) => String(value || '').toLowerCase() === 'true';
 
-exports.getPatientNotifications = async (req, res) => {
+exports.getMyNotifications = async (req, res) => {
   try {
     const limit = parseLimit(req.query.limit, 20, 100);
     const unreadOnly = parseBoolean(req.query.unreadOnly);
@@ -43,7 +43,7 @@ exports.getPatientNotifications = async (req, res) => {
   }
 };
 
-exports.markPatientNotificationRead = async (req, res) => {
+exports.markMyNotificationRead = async (req, res) => {
   try {
     const { notificationId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(notificationId)) {
@@ -75,7 +75,7 @@ exports.markPatientNotificationRead = async (req, res) => {
   }
 };
 
-exports.markAllPatientNotificationsRead = async (req, res) => {
+exports.markAllMyNotificationsRead = async (req, res) => {
   try {
     const result = await Notification.updateMany(
       { recipient: req.userId, isRead: false },
@@ -91,3 +91,7 @@ exports.markAllPatientNotificationsRead = async (req, res) => {
     return res.status(500).json({ message: 'Failed to mark notifications as read', error: error.message });
   }
 };
+
+exports.getPatientNotifications = exports.getMyNotifications;
+exports.markPatientNotificationRead = exports.markMyNotificationRead;
+exports.markAllPatientNotificationsRead = exports.markAllMyNotificationsRead;
