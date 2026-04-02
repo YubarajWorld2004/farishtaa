@@ -30,6 +30,8 @@
     "express": "^5.1.0",
     "express-session": "^1.18.2",
     "express-validator": "^7.2.1",
+    "firebase": "^12.11.0",
+    "firebase-admin": "^13.7.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.20.0",
@@ -37,7 +39,8 @@
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
     "node-fetch": "^3.3.2",
-    "razorpay": "^2.9.6"
+    "razorpay": "^2.9.6",
+    "socket.io": "^4.8.3"
   },
   "keywords": [],
   "description": ""

@@ -49,3 +49,37 @@ exports.postLogin=async (req,res,next)=>{
     }
 
 }
+
+exports.registerFcmToken = async (req, res) => {
+    try {
+        const tokenValue = String(req.body?.fcmToken || '').trim();
+        if (!tokenValue) {
+            return res.status(400).json({ message: 'fcmToken is required' });
+        }
+
+        await User.findByIdAndUpdate(req.userId, {
+            $addToSet: { fcmTokens: tokenValue },
+        });
+
+        return res.status(200).json({ message: 'Push token registered' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Failed to register push token', error: error.message });
+    }
+};
+
+exports.removeFcmToken = async (req, res) => {
+    try {
+        const tokenValue = String(req.body?.fcmToken || '').trim();
+        if (!tokenValue) {
+            return res.status(400).json({ message: 'fcmToken is required' });
+        }
+
+        await User.findByIdAndUpdate(req.userId, {
+            $pull: { fcmTokens: tokenValue },
+        });
+
+        return res.status(200).json({ message: 'Push token removed' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Failed to remove push token', error: error.message });
+    }
+};

@@ -2,6 +2,7 @@ const TelemedicineSession = require('../model/TelemedicineSession');
 const TelemedicineMessage = require('../model/TelemedicineMessage');
 const Appointment = require('../model/Appointment');
 const { toPublicUploadUrl } = require('../middleware/upload');
+const { createPatientNotification } = require('../service/notificationService');
 
 const mapFilesToAttachments = (files = []) =>
   files.map((file) => ({
@@ -179,6 +180,33 @@ exports.sendDoctorTelemedicineMessage = async (req, res) => {
       path: 'sender',
       select: 'firstName lastName userType',
     });
+
+    const senderName =
+      `${populated?.sender?.firstName || ''} ${populated?.sender?.lastName || ''}`.trim() ||
+      'Your doctor';
+    const trimmedContent = content.trim();
+    const preview = trimmedContent
+      ? trimmedContent.length > 120
+        ? `${trimmedContent.slice(0, 117)}...`
+        : trimmedContent
+      : 'sent you an attachment in telemedicine chat';
+
+    try {
+      await createPatientNotification({
+        patientId: access.session.patient,
+        senderId: req.userId,
+        type: 'telemedicine_message',
+        title: 'New telemedicine message',
+        message: `${senderName}: ${preview}`,
+        meta: {
+          sessionId,
+          appointmentId: access.session?.appointment?._id || access.session?.appointment,
+          messageId: message._id,
+        },
+      });
+    } catch (notificationError) {
+      console.error('Failed to create telemedicine notification:', notificationError.message);
+    }
 
     return res.status(201).json({ message: populated });
   } catch (error) {

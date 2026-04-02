@@ -12,6 +12,7 @@ userType : {type : String, required : true, enum : ['Doctor', 'Patient', 'Hospit
 age  : {type : Number},
 gender : {type : String, enum : ['Male','Female','Others']},
 chats : [{type : mongoose.Schema.Types.ObjectId, ref : 'Chats'}],
+fcmTokens : [{type : String}],
 // Doctor-specific fields (only used when userType === 'Doctor')
 specialist : {type : String},
 experience : {type : Number},

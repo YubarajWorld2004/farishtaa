@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const express = require("express");
+const http = require('http');
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -13,6 +14,7 @@ const doctorDashboardRouter = require("./routers/doctorDashboardRouter");
 const hospitalDashboardRouter = require("./routers/hospitalDashboardRouter");
 const { UPLOADS_BASE_DIR } = require("./middleware/upload");
 const { isLoggedIn, isPatient, isDoctor, isHospital } = require("./middleware/auth");
+const { initSocketServer } = require('./service/socketService');
 
 const app = express();
 
@@ -111,7 +113,10 @@ app.use(errorController.getError);
 if (require.main === module && !isServerlessRuntime) {
   connectMongo()
     .then(() => {
-      app.listen(PORT, () => {
+      const server = http.createServer(app);
+      initSocketServer(server);
+
+      server.listen(PORT, () => {
         console.log(`Server running at http://localhost:${PORT}`);
       });
     })

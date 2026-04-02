@@ -4,6 +4,7 @@ const patientController=require('../controllers/patientController');
 const appointmentController = require('../controllers/appointmentController');
 const telemedicineController = require('../controllers/telemedicineController');
 const prescriptionController = require('../controllers/prescriptionController');
+const notificationController = require('../controllers/notificationController');
 const { uploadTelemedicineFiles } = require('../middleware/upload');
 
 // Session management
@@ -22,6 +23,11 @@ patientRouter.post('/appointments/payment/verify-and-book', appointmentControlle
 patientRouter.post('/appointments/book', appointmentController.bookAppointment);
 patientRouter.get('/appointments', appointmentController.getPatientAppointments);
 patientRouter.patch('/appointments/:appointmentId/cancel', appointmentController.cancelPatientAppointment);
+
+// Patient notifications
+patientRouter.get('/notifications', notificationController.getPatientNotifications);
+patientRouter.patch('/notifications/read-all', notificationController.markAllPatientNotificationsRead);
+patientRouter.patch('/notifications/:notificationId/read', notificationController.markPatientNotificationRead);
 
 // Telemedicine sessions and messages
 patientRouter.get('/telemedicine/sessions', telemedicineController.getPatientTelemedicineSessions);

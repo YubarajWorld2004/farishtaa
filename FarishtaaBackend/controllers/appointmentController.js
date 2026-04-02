@@ -3,6 +3,7 @@ const Razorpay = require('razorpay');
 const Appointment = require('../model/Appointment');
 const TelemedicineSession = require('../model/TelemedicineSession');
 const User = require('../model/User');
+const { createPatientNotification } = require('../service/notificationService');
 const {
   buildSlotsFromAvailability,
   toDateTimeFromDateAndLabel,
@@ -12,6 +13,12 @@ const BOOKED_STATUSES = ['pending', 'accepted'];
 const DOCTOR_STATUS_UPDATES = ['accepted', 'rejected', 'completed', 'closed'];
 const TERMINAL_APPOINTMENT_STATUSES = ['rejected', 'completed', 'closed'];
 const RAZORPAY_CURRENCY = 'INR';
+const APPOINTMENT_STATUS_MESSAGES = {
+  accepted: 'accepted your appointment request',
+  rejected: 'rejected your appointment request',
+  completed: 'marked your appointment as completed',
+  closed: 'closed your appointment',
+};
 
 let razorpayClient = null;
 
@@ -502,6 +509,7 @@ exports.updateAppointmentStatus = async (req, res) => {
       return res.status(400).json({ message: 'Terminal appointments cannot be reopened' });
     }
 
+    const previousStatus = appointment.status;
     appointment.status = status;
     if (doctorResponseNote !== undefined) {
       appointment.doctorResponseNote = doctorResponseNote;
@@ -517,6 +525,33 @@ exports.updateAppointmentStatus = async (req, res) => {
     }
 
     await appointment.save();
+
+    if (previousStatus !== status) {
+      const doctorProfile = await User.findById(req.userId).select('firstName lastName');
+      const doctorName =
+        `${doctorProfile?.firstName || ''} ${doctorProfile?.lastName || ''}`.trim() || 'Your doctor';
+      const statusMessage =
+        APPOINTMENT_STATUS_MESSAGES[status] || `updated your appointment status to ${status}`;
+
+      try {
+        await createPatientNotification({
+          patientId: appointment.patient,
+          senderId: req.userId,
+          type: 'appointment_status',
+          title: 'Appointment status updated',
+          message: `${doctorName} ${statusMessage}. (${appointment.appointmentDate} at ${appointment.slotTime})`,
+          meta: {
+            appointmentId: appointment._id,
+            status,
+            appointmentDate: appointment.appointmentDate,
+            slotTime: appointment.slotTime,
+            meetingType: appointment.meetingType,
+          },
+        });
+      } catch (notificationError) {
+        console.error('Failed to create appointment status notification:', notificationError.message);
+      }
+    }
 
     const populated = await Appointment.findById(appointment._id)
       .populate({ path: 'patient', select: 'firstName lastName age gender' })
