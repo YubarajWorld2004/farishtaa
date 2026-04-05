@@ -73,6 +73,8 @@ class PrescriptionFileModel {
 class PrescriptionModel {
   const PrescriptionModel({
     required this.id,
+    required this.doctorId,
+    required this.appointmentId,
     required this.doctorName,
     required this.patientName,
     required this.patientAge,
@@ -90,6 +92,8 @@ class PrescriptionModel {
   });
 
   final String id;
+  final String doctorId;
+  final String appointmentId;
   final String doctorName;
   final String patientName;
   final int? patientAge;
@@ -121,6 +125,8 @@ class PrescriptionModel {
 
     return PrescriptionModel(
       id: (json['_id'] ?? '').toString(),
+      doctorId: (doctorRaw?['_id'] ?? '').toString(),
+      appointmentId: (appointmentRaw?['_id'] ?? '').toString(),
       doctorName: _personName(doctorRaw, fallback: 'Doctor'),
       patientName: _personName(patientRaw, fallback: 'Patient'),
       patientAge: int.tryParse((patientRaw?['age'] ?? '').toString()),

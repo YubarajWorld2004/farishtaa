@@ -14,6 +14,7 @@ import 'services/doctor_service.dart';
 import 'services/hospital_dashboard_service.dart';
 import 'services/patient_service.dart';
 import 'theme/app_theme.dart';
+import 'theme/app_theme_controller.dart';
 
 void runFarishtaaApp() {
   runApp(const FarishtaaApp());
@@ -30,10 +31,12 @@ class _FarishtaaAppState extends State<FarishtaaApp> {
   final _authStorage = AuthStorage();
   final _apiClient = ApiClient();
   final _localeController = AppLocaleController();
+  final _themeController = AppThemeController();
 
   UserSession? _session;
   bool _sessionReady = false;
   bool _localeReady = false;
+  bool _themeReady = false;
 
   late final AuthService _authService = AuthService(_apiClient);
   late final DoctorService _doctorService = DoctorService(_apiClient);
@@ -48,11 +51,13 @@ class _FarishtaaAppState extends State<FarishtaaApp> {
     super.initState();
     _restoreSession();
     _restoreLocale();
+    _restoreTheme();
   }
 
   @override
   void dispose() {
     _localeController.dispose();
+    _themeController.dispose();
     super.dispose();
   }
 
@@ -74,6 +79,16 @@ class _FarishtaaAppState extends State<FarishtaaApp> {
     }
     setState(() {
       _localeReady = true;
+    });
+  }
+
+  Future<void> _restoreTheme() async {
+    await _themeController.restore();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _themeReady = true;
     });
   }
 
@@ -99,14 +114,16 @@ class _FarishtaaAppState extends State<FarishtaaApp> {
 
   @override
   Widget build(BuildContext context) {
-    final loading = !_sessionReady || !_localeReady;
+    final loading = !_sessionReady || !_localeReady || !_themeReady;
 
     return AnimatedBuilder(
-      animation: _localeController,
+      animation: Listenable.merge([_localeController, _themeController]),
       builder: (context, _) => MaterialApp(
         debugShowCheckedModeBanner: false,
         onGenerateTitle: (context) => context.l10n.t('app.title'),
         theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: _themeController.themeMode,
         locale: _localeController.locale,
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: const [
@@ -122,6 +139,7 @@ class _FarishtaaAppState extends State<FarishtaaApp> {
                       authService: _authService,
                       onLoggedIn: _onLoggedIn,
                       localeController: _localeController,
+                      themeController: _themeController,
                     )
                   : RootShell(
                       session: _session!,
@@ -131,6 +149,7 @@ class _FarishtaaAppState extends State<FarishtaaApp> {
                       patientService: _patientService,
                       onLogout: _logout,
                       localeController: _localeController,
+                      themeController: _themeController,
                     )),
       ),
     );

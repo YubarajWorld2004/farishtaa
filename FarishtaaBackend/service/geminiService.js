@@ -4,6 +4,14 @@ const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
+const GENERATE_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-flash-lite-latest',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+];
+
 const normalizeLanguage = (language) => {
   const normalized = String(language || '').trim().toLowerCase();
   const map = {
@@ -53,6 +61,43 @@ const fallbackSymptomReply = (language) => {
 
 const createMessagesString = (messages) => {
   return messages.map((message) => `${message.role} : ${message.content}`).join('\n');
+};
+
+const shouldTryNextModel = (error) => {
+  const statusCode = Number(error?.status ?? error?.code);
+  const message = String(error?.message || '').toLowerCase();
+
+  if (statusCode === 429 || statusCode === 404 || statusCode === 503) {
+    return true;
+  }
+
+  return (
+    message.includes('quota') ||
+    message.includes('resource_exhausted') ||
+    message.includes('not found') ||
+    message.includes('rate limit')
+  );
+};
+
+const generateWithModelFailover = async (contents) => {
+  let lastError = null;
+
+  for (const model of GENERATE_MODELS) {
+    try {
+      return await ai.models.generateContent({
+        model,
+        contents,
+      });
+    } catch (error) {
+      lastError = error;
+      console.warn(`geminiService model failed (${model}):`, error?.status ?? error?.code ?? error?.message);
+      if (!shouldTryNextModel(error)) {
+        break;
+      }
+    }
+  }
+
+  throw lastError || new Error('No Gemini model could generate content');
 };
 
 const SYSTEM_PROMPT = {
@@ -139,10 +184,7 @@ async function generateContent(language, userPrompt, messages = [], userContext 
     const finalMessages = [systemPrompt, ...recentChat, newPrompt, languageToFollow];
     const newMessageList = createMessagesString(finalMessages);
 
-    const result = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: newMessageList,
-    });
+    const result = await generateWithModelFailover(newMessageList);
 
     const text = result?.text ?? (typeof result === 'string' ? result : '');
     return text.replace(/```json/g, '').replace(/```/g, '').trim();

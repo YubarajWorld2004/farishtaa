@@ -28,6 +28,8 @@ patientRouter.patch('/appointments/:appointmentId/cancel', appointmentController
 patientRouter.get('/notifications', notificationController.getMyNotifications);
 patientRouter.patch('/notifications/read-all', notificationController.markAllMyNotificationsRead);
 patientRouter.patch('/notifications/:notificationId/read', notificationController.markMyNotificationRead);
+patientRouter.delete('/notifications', notificationController.deleteAllMyNotifications);
+patientRouter.delete('/notifications/:notificationId', notificationController.deleteMyNotification);
 
 // Telemedicine sessions and messages
 patientRouter.get('/telemedicine/sessions', telemedicineController.getPatientTelemedicineSessions);

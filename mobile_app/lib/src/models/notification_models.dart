@@ -50,3 +50,13 @@ class NotificationListResponse {
   final List<AppNotificationModel> notifications;
   final int unreadCount;
 }
+
+class NotificationMutationResult {
+  const NotificationMutationResult({
+    required this.unreadCount,
+    required this.affectedCount,
+  });
+
+  final int unreadCount;
+  final int affectedCount;
+}

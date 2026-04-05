@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import {
   HiOutlineCalendar,
   HiOutlineClock,
+  HiOutlineSearch,
+  HiOutlineDocumentText,
   HiOutlineVideoCamera,
   HiOutlineXCircle,
 } from "react-icons/hi";
@@ -92,6 +94,7 @@ const MyAppointments = () => {
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState(null);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedPaymentAppointment, setSelectedPaymentAppointment] = useState(null);
 
   const fetchAppointments = async () => {
@@ -194,6 +197,42 @@ const MyAppointments = () => {
     );
   }, [appointments]);
 
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+
+  const filteredAppointments = useMemo(() => {
+    if (!normalizedSearch) {
+      return appointments;
+    }
+
+    return appointments.filter((appointment) => {
+      const doctorName =
+        `${appointment.doctor?.firstName || ""} ${appointment.doctor?.lastName || ""}`.trim() ||
+        appointment.doctor?.name ||
+        "";
+
+      const searchableContent = [
+        doctorName,
+        appointment.doctor?.specialist,
+        appointment.appointmentDate,
+        appointment.slotTime,
+        appointment.reason,
+        appointment.status,
+        appointment.meetingType,
+        appointment.appointmentFor,
+        getRelativeBookingSummary(appointment),
+        appointment.relativeDetails?.importantNotes,
+        appointment.paymentProvider,
+        appointment.paymentStatus,
+        appointment.paymentId,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableContent.includes(normalizedSearch);
+    });
+  }, [appointments, normalizedSearch]);
+
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-5">
       <PaymentDetailsModal
@@ -236,19 +275,58 @@ const MyAppointments = () => {
         </div>
       </div>
 
+      <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+        <label
+          htmlFor="patient-appointments-search"
+          className="text-xs font-semibold text-gray-600 dark:text-gray-300"
+        >
+          Search appointments
+        </label>
+        <div className="mt-2 relative">
+          <HiOutlineSearch
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+          />
+          <input
+            id="patient-appointments-search"
+            type="text"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={t("myAppointments.searchPlaceholder", {
+              defaultValue: "Search by doctor, date, status, reason...",
+            })}
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100 pl-9 pr-16 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+            autoComplete="off"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-semibold text-red-600 hover:text-red-700"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
       {error && <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 p-3 text-sm">{error}</div>}
 
       {loading ? (
         <div className="flex items-center justify-center h-40">
           <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : appointments.length === 0 ? (
+      ) : filteredAppointments.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-12 text-center text-gray-500 dark:text-gray-400">
-          {t("myAppointments.noAppointments")}
+          {normalizedSearch
+            ? t("myAppointments.noSearchResults", {
+                defaultValue: "No appointments match your search.",
+              })
+            : t("myAppointments.noAppointments")}
         </div>
       ) : (
         <div className="space-y-3">
-          {appointments.map((appointment) => {
+          {filteredAppointments.map((appointment) => {
             const doctorName = `${appointment.doctor?.firstName || ""} ${appointment.doctor?.lastName || ""}`.trim();
             const paymentStatus = getPaymentStatus(appointment);
             const paymentAmountInRupees = getAppointmentAmountInRupees(appointment);
@@ -325,6 +403,18 @@ const MyAppointments = () => {
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200"
                     >
                       View Payment
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        const doctorId = appointment.doctor?._id || appointment.doctor?.id;
+                        const query = doctorId ? `?doctorId=${doctorId}` : "";
+                        navigate(`/prescriptions${query}`);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200"
+                    >
+                      <HiOutlineDocumentText size={14} />
+                      {t("prescription.title", { defaultValue: "Prescriptions" })}
                     </button>
 
                     {appointment.status === "accepted" && appointment.telemedicineSession && (

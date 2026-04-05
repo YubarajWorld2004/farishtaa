@@ -10,12 +10,14 @@ import {
   HiOutlineExclamationCircle,
   HiOutlineOfficeBuilding,
 } from "react-icons/hi";
+import { getTimeBasedGreeting } from "../../../utils/greeting";
 
 const HospitalDashboard = () => {
   const { token } = useSelector((state) => state.auth);
   const [hospital, setHospital] = useState(null);
   const [stats, setStats] = useState({ totalDoctors: 0, completedProfiles: 0, totalReviews: 0, averageRating: 0 });
   const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,6 +46,14 @@ const HospitalDashboard = () => {
     fetchData();
   }, [token]);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setCurrentTime(new Date());
+    }, 30000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -52,12 +62,7 @@ const HospitalDashboard = () => {
     );
   }
 
-  const greeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 17) return "Good Afternoon";
-    return "Good Evening";
-  };
+  const greeting = getTimeBasedGreeting(currentTime);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -65,7 +70,7 @@ const HospitalDashboard = () => {
       <div className="bg-gradient-to-r from-red-600 to-red-500 rounded-2xl p-6 lg:p-8 text-white shadow-lg shadow-red-200/40 dark:shadow-red-900/20">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-red-100 text-sm">{greeting()},</p>
+            <p className="text-red-100 text-sm">{greeting},</p>
             <h1 className="text-2xl lg:text-3xl font-bold mt-1">
               {hospital?.hospitalName || hospital?.firstName || "Hospital Admin"}
             </h1>

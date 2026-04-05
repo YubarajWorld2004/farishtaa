@@ -92,6 +92,53 @@ exports.markAllMyNotificationsRead = async (req, res) => {
   }
 };
 
+exports.deleteMyNotification = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(notificationId)) {
+      return res.status(400).json({ message: 'Invalid notification id' });
+    }
+
+    const deleted = await Notification.findOneAndDelete({
+      _id: notificationId,
+      recipient: req.userId,
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+
+    const unreadCount = await Notification.countDocuments({
+      recipient: req.userId,
+      isRead: false,
+    });
+
+    return res.status(200).json({
+      message: 'Notification deleted',
+      deletedId: String(deleted._id),
+      unreadCount,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to delete notification', error: error.message });
+  }
+};
+
+exports.deleteAllMyNotifications = async (req, res) => {
+  try {
+    const result = await Notification.deleteMany({ recipient: req.userId });
+
+    return res.status(200).json({
+      message: 'All notifications deleted',
+      deletedCount: result.deletedCount || 0,
+      unreadCount: 0,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to delete notifications', error: error.message });
+  }
+};
+
 exports.getPatientNotifications = exports.getMyNotifications;
 exports.markPatientNotificationRead = exports.markMyNotificationRead;
 exports.markAllPatientNotificationsRead = exports.markAllMyNotificationsRead;
+exports.deletePatientNotification = exports.deleteMyNotification;
+exports.deleteAllPatientNotifications = exports.deleteAllMyNotifications;

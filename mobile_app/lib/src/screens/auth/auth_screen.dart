@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../config/app_assets.dart';
 import '../../i18n/app_locale_controller.dart';
 import '../../i18n/app_localizations.dart';
 import '../../models/auth_models.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/app_theme_controller.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({
@@ -12,11 +15,13 @@ class AuthScreen extends StatefulWidget {
     required this.authService,
     required this.onLoggedIn,
     required this.localeController,
+    required this.themeController,
   });
 
   final AuthService authService;
   final Future<void> Function(UserSession) onLoggedIn;
   final AppLocaleController localeController;
+  final AppThemeController themeController;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -96,6 +101,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final isDark = AppTheme.isDark(context);
 
     return Scaffold(
       body: SafeArea(
@@ -110,18 +116,40 @@ class _AuthScreenState extends State<AuthScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        'Farishtaa',
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              color: AppTheme.dangerRed,
-                            ),
+                      child: Row(
+                        children: [
+                          Image.asset(AppAssets.cross, width: 32, height: 32),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Farishtaa',
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: AppTheme.dangerRed,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Toggle theme',
+                      onPressed: widget.themeController.toggle,
+                      icon: AnimatedBuilder(
+                        animation: widget.themeController,
+                        builder: (_, _) => Icon(
+                          widget.themeController.isDarkMode
+                              ? Icons.dark_mode_outlined
+                              : Icons.light_mode_outlined,
+                        ),
                       ),
                     ),
                     PopupMenuButton<String>(
                       tooltip: l10n.t('language.chooseTitle'),
-                      icon: const Icon(Icons.translate),
+                      icon: Image.asset(
+                        AppAssets.translate,
+                        width: 24,
+                        height: 24,
+                      ),
                       onSelected: (value) {
                         widget.localeController.setLocaleByCode(value);
                       },
@@ -142,12 +170,43 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  l10n.t('auth.tagline'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Theme.of(context).colorScheme.surfaceContainerHighest
+                        : const Color(0xFFF4F8FD),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isDark
+                          ? Theme.of(context).colorScheme.outlineVariant
+                          : const Color(0xFFE1E9F5),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.t('auth.tagline'),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                height: 1.35,
+                              ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 92,
+                        height: 92,
+                        child: SvgPicture.asset(
+                          AppAssets.chat,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 20),
                 SegmentedButton<bool>(

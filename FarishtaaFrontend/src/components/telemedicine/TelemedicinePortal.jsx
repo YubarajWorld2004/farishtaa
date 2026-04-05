@@ -23,6 +23,26 @@ const toAbsoluteFileUrl = (relativeUrl) => {
 
 const PATIENT_BLOCKED_STATUSES = ["rejected", "completed", "cancelled", "closed"];
 
+const hasMessageListChanged = (previous, next) => {
+  if (!Array.isArray(previous) || !Array.isArray(next)) return true;
+  if (previous.length !== next.length) return true;
+
+  for (let index = 0; index < previous.length; index += 1) {
+    const oldMessage = previous[index];
+    const newMessage = next[index];
+
+    if ((oldMessage?._id || "") !== (newMessage?._id || "")) return true;
+    if ((oldMessage?.content || "") !== (newMessage?.content || "")) return true;
+    if ((oldMessage?.createdAt || "") !== (newMessage?.createdAt || "")) return true;
+
+    const oldAttachmentCount = Array.isArray(oldMessage?.attachments) ? oldMessage.attachments.length : 0;
+    const newAttachmentCount = Array.isArray(newMessage?.attachments) ? newMessage.attachments.length : 0;
+    if (oldAttachmentCount !== newAttachmentCount) return true;
+  }
+
+  return false;
+};
+
 const TelemedicinePortal = () => {
   const { token, userType } = useSelector((state) => state.auth);
   const { t } = useTranslation();
@@ -84,11 +104,13 @@ const TelemedicinePortal = () => {
     }
   };
 
-  const fetchMessages = async (sessionId) => {
+  const fetchMessages = async (sessionId, { silent = false } = {}) => {
     if (!sessionId) return;
 
     try {
-      setLoadingMessages(true);
+      if (!silent) {
+        setLoadingMessages(true);
+      }
       const res = await fetch(`${basePath}/telemedicine/sessions/${sessionId}/messages`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -104,11 +126,18 @@ const TelemedicinePortal = () => {
         console.error(data.message || t("telemedicine.errors.loadMessages"));
         return;
       }
-      setMessages(data.messages || []);
+      const incomingMessages = Array.isArray(data.messages) ? data.messages : [];
+      setMessages((previous) =>
+        hasMessageListChanged(previous, incomingMessages)
+          ? incomingMessages
+          : previous
+      );
     } catch (error) {
       console.error(t("telemedicine.errors.fetchMessages"), error);
     } finally {
-      setLoadingMessages(false);
+      if (!silent) {
+        setLoadingMessages(false);
+      }
     }
   };
 
@@ -129,10 +158,10 @@ const TelemedicinePortal = () => {
 
   useEffect(() => {
     if (!activeSessionId) return;
-    fetchMessages(activeSessionId);
+    fetchMessages(activeSessionId, { silent: false });
 
     const timer = setInterval(() => {
-      fetchMessages(activeSessionId);
+      fetchMessages(activeSessionId, { silent: true });
     }, 6000);
 
     return () => clearInterval(timer);

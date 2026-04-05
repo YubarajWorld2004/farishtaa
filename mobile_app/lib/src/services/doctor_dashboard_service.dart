@@ -275,6 +275,30 @@ class DoctorDashboardService {
     return _parseNotificationListResponse(response);
   }
 
+  Future<NotificationMutationResult> deleteNotification({
+    required String token,
+    required String notificationId,
+  }) async {
+    final encoded = Uri.encodeComponent(notificationId);
+    final response = await _apiClient.delete(
+      '/api/doctor-dashboard/notifications/$encoded',
+      token: token,
+    );
+
+    return _parseNotificationMutationResult(response);
+  }
+
+  Future<NotificationMutationResult> deleteAllNotifications({
+    required String token,
+  }) async {
+    final response = await _apiClient.delete(
+      '/api/doctor-dashboard/notifications',
+      token: token,
+    );
+
+    return _parseNotificationMutationResult(response);
+  }
+
   NotificationListResponse _parseNotificationListResponse(
     Map<String, dynamic> response,
   ) {
@@ -294,6 +318,30 @@ class DoctorDashboardService {
     return NotificationListResponse(
       notifications: notifications,
       unreadCount: unreadCount,
+    );
+  }
+
+  NotificationMutationResult _parseNotificationMutationResult(
+    Map<String, dynamic> response,
+  ) {
+    final unreadRaw = response['unreadCount'];
+    final unreadCount = unreadRaw is int
+        ? unreadRaw
+        : int.tryParse(unreadRaw?.toString() ?? '') ?? 0;
+
+    final affectedRaw =
+        response['deletedCount'] ?? response['updatedCount'] ?? response['affectedCount'];
+    var affectedCount = affectedRaw is int
+        ? affectedRaw
+        : int.tryParse(affectedRaw?.toString() ?? '') ?? 0;
+
+    if (affectedCount == 0 && (response['deletedId'] ?? '').toString().isNotEmpty) {
+      affectedCount = 1;
+    }
+
+    return NotificationMutationResult(
+      unreadCount: unreadCount,
+      affectedCount: affectedCount,
     );
   }
 }

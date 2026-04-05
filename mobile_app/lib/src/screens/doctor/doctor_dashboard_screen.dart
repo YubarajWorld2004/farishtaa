@@ -1,8 +1,14 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+import '../../config/app_assets.dart';
 import '../../models/auth_models.dart';
 import '../../models/doctor_dashboard_models.dart';
 import '../../services/doctor_dashboard_service.dart';
+import '../../theme/app_theme.dart';
+import '../../utils/greeting_utils.dart';
 
 class DoctorDashboardScreen extends StatefulWidget {
   const DoctorDashboardScreen({
@@ -37,11 +43,32 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     averageRating: 0,
   );
   bool _loading = true;
+  DateTime _currentTime = DateTime.now();
+  Timer? _greetingTimer;
 
   @override
   void initState() {
     super.initState();
+    _startGreetingTicker();
     _bootstrap();
+  }
+
+  @override
+  void dispose() {
+    _greetingTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startGreetingTicker() {
+    _greetingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _currentTime = DateTime.now();
+      });
+    });
   }
 
   Future<void> _bootstrap() async {
@@ -74,17 +101,6 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     }
   }
 
-  String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) {
-      return 'Good Morning';
-    }
-    if (hour < 17) {
-      return 'Good Afternoon';
-    }
-    return 'Good Evening';
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -107,6 +123,8 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         ),
       );
     }
+
+    final isDark = AppTheme.isDark(context);
 
     return RefreshIndicator(
       onRefresh: _bootstrap,
@@ -148,25 +166,41 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                 ),
               ],
             ),
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${_greeting()},',
-                  style: const TextStyle(color: Color(0xFFFADADD)),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Dr. ${profile.fullName}',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${getTimeBasedGreeting(_currentTime)},',
+                        style: const TextStyle(color: Color(0xFFFADADD)),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Dr. ${profile.fullName}',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${profile.specialist.isEmpty ? 'Specialist not set' : profile.specialist} • ${profile.experience > 0 ? '${profile.experience} yrs experience' : 'Experience not set'}',
+                        style: const TextStyle(color: Color(0xFFFADADD)),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '${profile.specialist.isEmpty ? 'Specialist not set' : profile.specialist} • ${profile.experience > 0 ? '${profile.experience} yrs experience' : 'Experience not set'}',
-                  style: const TextStyle(color: Color(0xFFFADADD)),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 96,
+                  height: 96,
+                  child: SvgPicture.asset(
+                    AppAssets.doctor,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ],
             ),
@@ -174,11 +208,13 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           const SizedBox(height: 12),
           if (!profile.profileCompleted)
             Card(
-              color: const Color(0xFFFFF6DD),
+              color: isDark ? const Color(0xFF4A3B16) : const Color(0xFFFFF6DD),
               child: ListTile(
-                leading: const Icon(
+                leading: Icon(
                   Icons.error_outline,
-                  color: Color(0xFFB45309),
+                  color: isDark
+                      ? const Color(0xFFF5C66A)
+                      : const Color(0xFFB45309),
                 ),
                 title: const Text('Complete your profile'),
                 subtitle: const Text(
@@ -191,15 +227,15 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
               ),
             )
           else
-            const Card(
-              color: Color(0xFFE7F9EF),
+            Card(
+              color: isDark ? const Color(0xFF123A2A) : const Color(0xFFE7F9EF),
               child: ListTile(
-                leading: Icon(
+                leading: const Icon(
                   Icons.check_circle_outline,
                   color: Color(0xFF0F9D58),
                 ),
-                title: Text('Profile complete'),
-                subtitle: Text('Your profile is visible to patients.'),
+                title: const Text('Profile complete'),
+                subtitle: const Text('Your profile is visible to patients.'),
               ),
             ),
           const SizedBox(height: 12),
@@ -291,6 +327,8 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(10),
@@ -302,7 +340,7 @@ class _StatCard extends StatelessWidget {
               label,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11, color: Colors.black54),
+              style: TextStyle(fontSize: 11, color: muted),
             ),
             const SizedBox(height: 6),
             Text(

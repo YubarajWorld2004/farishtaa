@@ -17,10 +17,14 @@ class PrescriptionsScreen extends StatefulWidget {
     super.key,
     required this.session,
     required this.patientService,
+    this.initialDoctorId = '',
+    this.initialAppointmentId = '',
   });
 
   final UserSession session;
   final PatientService patientService;
+  final String initialDoctorId;
+  final String initialAppointmentId;
 
   @override
   State<PrescriptionsScreen> createState() => _PrescriptionsScreenState();
@@ -334,11 +338,9 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
     PrescriptionModel prescription,
   ) async {
     final document = pw.Document();
-    final issuedAtText = prescription.issuedAt == null
-        ? 'Issued date unavailable'
-        : _formatPdfDateTime(prescription.issuedAt!);
-
-    final generatedAtText = _formatPdfDateTime(DateTime.now());
+    final generatedAt = DateTime.now();
+    final generatedAtText = _formatPdfDateTime(generatedAt);
+    final issuedAtText = generatedAtText;
     final doctorName = _pdfValue(prescription.doctorName);
     final patientName = _pdfValue(
       prescription.patientName,
@@ -432,7 +434,6 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
             pw.Divider(color: const PdfColor.fromInt(0xFFE5E7EB)),
             _buildPdfSectionTitle('Prescription Header'),
             _buildPdfFieldRow('Prescription ID', _pdfValue(prescription.id)),
-            _buildPdfFieldRow('Issued At', issuedAtText),
             _buildPdfFieldRow('Appointment', appointmentText),
             _buildPdfSectionTitle('Doctor Details'),
             _buildPdfFieldRow('Doctor', doctorName),
@@ -639,6 +640,21 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
       );
     }
 
+    final doctorFilterId = widget.initialDoctorId.trim();
+    final appointmentFilterId = widget.initialAppointmentId.trim();
+    final hasDoctorFilter = doctorFilterId.isNotEmpty;
+    final hasAppointmentFilter =
+        !hasDoctorFilter && appointmentFilterId.isNotEmpty;
+    final filteredPrescriptions = hasDoctorFilter
+        ? _prescriptions
+              .where((item) => item.doctorId == doctorFilterId)
+              .toList()
+        : hasAppointmentFilter
+        ? _prescriptions
+              .where((item) => item.appointmentId == appointmentFilterId)
+              .toList()
+        : _prescriptions;
+
     return RefreshIndicator(
       onRefresh: _fetch,
       child: ListView(
@@ -650,13 +666,28 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
+          if (hasDoctorFilter || hasAppointmentFilter) ...[
+            const SizedBox(height: 8),
+            Card(
+              color: const Color(0xFFE8F1FF),
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  hasDoctorFilter
+                      ? 'Showing prescriptions for the selected doctor.'
+                      : 'Showing prescriptions for the selected appointment.',
+                  style: const TextStyle(color: Color(0xFF1D4ED8)),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           if (_loading)
             const Padding(
               padding: EdgeInsets.only(top: 24),
               child: Center(child: CircularProgressIndicator()),
             )
-          else if (_prescriptions.isEmpty)
+          else if (filteredPrescriptions.isEmpty)
             const Card(
               child: Padding(
                 padding: EdgeInsets.all(16),
@@ -664,7 +695,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
               ),
             )
           else
-            ..._prescriptions.map(
+            ...filteredPrescriptions.map(
               (item) => Card(
                 margin: const EdgeInsets.only(bottom: 10),
                 child: Padding(

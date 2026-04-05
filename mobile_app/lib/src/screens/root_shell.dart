@@ -7,6 +7,7 @@ import '../services/doctor_dashboard_service.dart';
 import '../services/doctor_service.dart';
 import '../services/hospital_dashboard_service.dart';
 import '../services/patient_service.dart';
+import '../theme/app_theme_controller.dart';
 import 'account/account_screen.dart';
 import 'appointments/my_appointments_screen.dart';
 import 'chat/chat_screen.dart';
@@ -36,6 +37,7 @@ class RootShell extends StatefulWidget {
     required this.patientService,
     required this.onLogout,
     required this.localeController,
+    required this.themeController,
   });
 
   final UserSession session;
@@ -45,6 +47,7 @@ class RootShell extends StatefulWidget {
   final PatientService patientService;
   final VoidCallback onLogout;
   final AppLocaleController localeController;
+  final AppThemeController themeController;
 
   @override
   State<RootShell> createState() => _RootShellState();
@@ -197,6 +200,7 @@ class _RootShellState extends State<RootShell> {
           onOpenNotifications: _openNotifications,
           onOpenTelemedicine: () => setState(() => _index = 2),
           localeController: widget.localeController,
+          themeController: widget.themeController,
         ),
       ];
 
@@ -260,6 +264,7 @@ class _RootShellState extends State<RootShell> {
           onOpenNotifications: _openDoctorNotifications,
           onOpenTelemedicine: () => setState(() => _index = 2),
           localeController: widget.localeController,
+          themeController: widget.themeController,
         ),
       ];
 
@@ -319,6 +324,7 @@ class _RootShellState extends State<RootShell> {
           onOpenTelemedicine: () {},
           onOpenHospitalSettings: () => setState(() => _index = 3),
           localeController: widget.localeController,
+          themeController: widget.themeController,
         ),
       ];
 
@@ -357,6 +363,7 @@ class _RootShellState extends State<RootShell> {
           onOpenNotifications: () {},
           onOpenTelemedicine: () {},
           localeController: widget.localeController,
+          themeController: widget.themeController,
         ),
       ];
 

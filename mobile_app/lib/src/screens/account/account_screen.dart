@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../i18n/app_locale_controller.dart';
 import '../../i18n/app_localizations.dart';
 import '../../models/auth_models.dart';
+import '../../theme/app_theme_controller.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({
@@ -13,6 +14,7 @@ class AccountScreen extends StatelessWidget {
     required this.onOpenNotifications,
     required this.onOpenTelemedicine,
     required this.localeController,
+    required this.themeController,
     this.onOpenHospitalSettings,
   });
 
@@ -22,6 +24,7 @@ class AccountScreen extends StatelessWidget {
   final VoidCallback onOpenNotifications;
   final VoidCallback onOpenTelemedicine;
   final AppLocaleController localeController;
+  final AppThemeController themeController;
   final VoidCallback? onOpenHospitalSettings;
 
   Future<void> _openLanguagePicker(BuildContext context) async {
@@ -159,6 +162,26 @@ class AccountScreen extends StatelessWidget {
                   ),
                 ),
                 onTap: () => _openLanguagePicker(context),
+              ),
+              AnimatedBuilder(
+                animation: themeController,
+                builder: (_, _) => SwitchListTile(
+                  secondary: Icon(
+                    themeController.isDarkMode
+                        ? Icons.dark_mode_outlined
+                        : Icons.light_mode_outlined,
+                  ),
+                  title: const Text('Dark Theme'),
+                  subtitle: Text(
+                    themeController.isDarkMode
+                        ? 'Dark mode is enabled'
+                        : 'Light mode is enabled',
+                  ),
+                  value: themeController.isDarkMode,
+                  onChanged: (value) {
+                    themeController.setDarkMode(value);
+                  },
+                ),
               ),
               if (!isHospital)
                 ListTile(

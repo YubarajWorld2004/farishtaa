@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/appointment_models.dart';
 import '../../models/auth_models.dart';
 import '../../services/patient_service.dart';
+import '../prescriptions/prescriptions_screen.dart';
 import '../telemedicine/telemedicine_screen.dart';
 
 class MyAppointmentsScreen extends StatefulWidget {
@@ -22,10 +23,12 @@ class MyAppointmentsScreen extends StatefulWidget {
 
 class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
   final _currency = NumberFormat.currency(locale: 'en_IN', symbol: 'Rs ');
+  final TextEditingController _searchController = TextEditingController();
 
   List<AppointmentModel> _appointments = <AppointmentModel>[];
   bool _loading = true;
   String _actionId = '';
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -33,6 +36,12 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     if (_canUsePatientAppointments) {
       _fetchAppointments();
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   bool get _canUsePatientAppointments =>
@@ -270,6 +279,31 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
         .where((item) => item.resolvedPaymentStatus == 'not_required')
         .length;
 
+    final normalizedSearch = _searchQuery.trim().toLowerCase();
+    final filteredAppointments = normalizedSearch.isEmpty
+        ? _appointments
+        : _appointments.where((appointment) {
+            final relative = appointment.relativeDetails;
+            final searchableContent = <String>[
+              appointment.doctor.displayName,
+              appointment.doctor.specialist,
+              appointment.appointmentDate,
+              appointment.slotTime,
+              appointment.reason,
+              appointment.status,
+              appointment.meetingType,
+              appointment.appointmentFor,
+              appointment.resolvedPaymentStatus,
+              relative?.name ?? '',
+              relative?.relation ?? '',
+              relative?.importantNotes ?? '',
+              appointment.paymentId,
+              appointment.paymentProvider,
+            ].join(' ').toLowerCase();
+
+            return searchableContent.contains(normalizedSearch);
+          }).toList();
+
     return RefreshIndicator(
       onRefresh: _fetchAppointments,
       child: ListView(
@@ -280,6 +314,28 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _searchQuery = value),
+            decoration: InputDecoration(
+              hintText: 'Search by doctor, date, status, reason...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                      icon: const Icon(Icons.clear),
+                    ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              isDense: true,
+            ),
           ),
           const SizedBox(height: 10),
           GridView(
@@ -320,15 +376,19 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
               padding: EdgeInsets.only(top: 24),
               child: Center(child: CircularProgressIndicator()),
             )
-          else if (_appointments.isEmpty)
-            const Card(
+          else if (filteredAppointments.isEmpty)
+            Card(
               child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('No appointments found yet.'),
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  normalizedSearch.isEmpty
+                      ? 'No appointments found yet.'
+                      : 'No appointments match your search.',
+                ),
               ),
             )
           else
-            ..._appointments.map(
+            ...filteredAppointments.map(
               (appointment) => Card(
                 margin: const EdgeInsets.only(bottom: 10),
                 child: Padding(
@@ -424,6 +484,28 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                           OutlinedButton(
                             onPressed: () => _showPaymentDetails(appointment),
                             child: const Text('View Payment'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => Scaffold(
+                                    appBar: AppBar(
+                                      title: const Text('Prescriptions'),
+                                    ),
+                                    body: SafeArea(
+                                      child: PrescriptionsScreen(
+                                        session: widget.session,
+                                        patientService: widget.patientService,
+                                        initialDoctorId: appointment.doctor.id,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.receipt_long_outlined),
+                            label: const Text('Prescription'),
                           ),
                           if (appointment.canOpenTelemedicine)
                             ElevatedButton.icon(

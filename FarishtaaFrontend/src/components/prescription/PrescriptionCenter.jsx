@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { jsPDF } from "jspdf";
@@ -140,9 +140,12 @@ const PrescriptionCenter = () => {
   const { token, userType } = useSelector((state) => state.auth);
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const isDoctor = userType === "Doctor";
   const isPatient = userType === "Patient";
+  const requestedDoctorId = searchParams.get("doctorId") || "";
+  const requestedAppointmentId = searchParams.get("appointmentId") || "";
 
   const [prescriptions, setPrescriptions] = useState([]);
   const [appointments, setAppointments] = useState([]);
@@ -181,14 +184,17 @@ const PrescriptionCenter = () => {
   const fetchDoctorAppointments = async () => {
     if (!isDoctor) return;
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/doctor-dashboard/appointments`, {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/doctor-dashboard/appointments?status=accepted`,
+        {
         headers: { Authorization: `Bearer ${token}` },
-      });
+        }
+      );
       const data = await res.json();
       if (!res.ok) return;
 
       const allowed = (data.appointments || []).filter((item) =>
-        ["accepted", "completed"].includes(item.status)
+        item.status === "accepted"
       );
       setAppointments(allowed);
     } catch (error) {
@@ -211,10 +217,90 @@ const PrescriptionCenter = () => {
     [appointments, form.appointmentId]
   );
 
+  const filteredPrescriptions = useMemo(() => {
+    if (requestedDoctorId) {
+      return prescriptions.filter((prescription) => {
+        const doctorRef = prescription?.doctor;
+        if (!doctorRef) {
+          return false;
+        }
+
+        if (typeof doctorRef === "string") {
+          return doctorRef === requestedDoctorId;
+        }
+
+        return doctorRef?._id === requestedDoctorId || doctorRef?.id === requestedDoctorId;
+      });
+    }
+
+    if (!requestedAppointmentId) {
+      return prescriptions;
+    }
+
+    return prescriptions.filter((prescription) => {
+      const appointmentRef = prescription?.appointment;
+      if (!appointmentRef) {
+        return false;
+      }
+
+      if (typeof appointmentRef === "string") {
+        return appointmentRef === requestedAppointmentId;
+      }
+
+      return appointmentRef?._id === requestedAppointmentId;
+    });
+  }, [prescriptions, requestedDoctorId, requestedAppointmentId]);
+
   useEffect(() => {
     if (!selectedAppointment) return;
     setForm((prev) => ({ ...prev, patientId: selectedAppointment.patient?._id || "" }));
   }, [selectedAppointment]);
+
+  useEffect(() => {
+    if (!isDoctor || !form.appointmentId) {
+      return;
+    }
+
+    const stillExists = appointments.some((appointment) => appointment._id === form.appointmentId);
+    if (stillExists) {
+      return;
+    }
+
+    setForm((prev) => ({ ...prev, appointmentId: "", patientId: "" }));
+  }, [isDoctor, appointments, form.appointmentId]);
+
+  useEffect(() => {
+    if (!isDoctor || !requestedAppointmentId || appointments.length === 0) {
+      return;
+    }
+
+    const matchedAppointment = appointments.find((appointment) => appointment._id === requestedAppointmentId);
+    if (!matchedAppointment) {
+      return;
+    }
+
+    setForm((prev) => {
+      if (prev.appointmentId === matchedAppointment._id) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        appointmentId: matchedAppointment._id,
+      };
+    });
+  }, [isDoctor, requestedAppointmentId, appointments]);
+
+  const clearActiveFilter = () => {
+    if (!requestedDoctorId && !requestedAppointmentId) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("doctorId");
+    nextParams.delete("appointmentId");
+    setSearchParams(nextParams);
+  };
 
   const updateMedicine = (index, field, value) => {
     setMedicines((prev) =>
@@ -281,6 +367,8 @@ const PrescriptionCenter = () => {
     let y = margin;
     const locale = i18n.resolvedLanguage || undefined;
     const pdfNa = t("prescription.pdf.na");
+    const generatedAt = new Date();
+    const generatedAtText = generatedAt.toLocaleString(locale);
 
     let watermarkDataUrl = null;
     try {
@@ -371,14 +459,13 @@ const PrescriptionCenter = () => {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(107, 114, 128);
-    doc.text(t("prescription.pdf.generatedAt", { date: new Date().toLocaleString(locale) }), margin, y);
+    doc.text(t("prescription.pdf.generatedAt", { date: generatedAtText }), margin, y);
     y += 18;
 
     addDivider();
 
     addSectionTitle(t("prescription.pdf.sections.header"));
     addField(t("prescription.pdf.fields.prescriptionId"), prescription?._id || "");
-    addField(t("prescription.pdf.fields.issuedAt"), toDateTimeText(prescription?.issuedAt, pdfNa, locale));
     addField(t("prescription.pdf.fields.appointment"), appointmentLabel);
 
     addSectionTitle(t("prescription.pdf.sections.doctorDetails"));
@@ -455,7 +542,7 @@ const PrescriptionCenter = () => {
     doc.setTextColor(51, 65, 85);
     doc.text(t("prescription.pdf.digitallySignedBy", { name: signedDoctorName }), signatureBoxX + 10, signatureBoxY + 27);
     doc.text(
-      t("prescription.pdf.dateLabel", { date: toDateTimeText(prescription?.issuedAt, pdfNa, locale) }),
+      t("prescription.pdf.dateLabel", { date: generatedAtText }),
       signatureBoxX + 10,
       signatureBoxY + 38
     );
@@ -486,6 +573,23 @@ const PrescriptionCenter = () => {
             : t("prescription.subtitlePatient")}
         </p>
       </div>
+
+      {(requestedDoctorId || requestedAppointmentId) && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 text-blue-800 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-3">
+          <span>
+            {requestedDoctorId
+              ? "Showing prescriptions for the selected doctor."
+              : "Showing prescriptions for the selected appointment."}
+          </span>
+          <button
+            type="button"
+            onClick={clearActiveFilter}
+            className="inline-flex items-center rounded-lg border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+          >
+            Show All
+          </button>
+        </div>
+      )}
 
       {isDoctor && (
         <form
@@ -626,11 +730,11 @@ const PrescriptionCenter = () => {
 
         {loading ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">{t("prescription.loadingPrescriptions")}</p>
-        ) : prescriptions.length === 0 ? (
+        ) : filteredPrescriptions.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">{t("prescription.noPrescriptions")}</p>
         ) : (
           <div className="space-y-3">
-            {prescriptions.map((prescription) => (
+            {filteredPrescriptions.map((prescription) => (
               <div
                 key={prescription._id}
                 className="rounded-xl border border-gray-100 dark:border-gray-700 p-4"

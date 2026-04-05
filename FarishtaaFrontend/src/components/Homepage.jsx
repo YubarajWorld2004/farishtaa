@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import FarishtaaLogo from "../components/logo/FarishtaaLogo"
 import robot from "../assets/Chat.svg"
 import { useNavigate } from "react-router-dom"
@@ -7,11 +8,24 @@ import brain from "../assets/brain.svg"
 import translate from "../assets/translate.png"
 import doctorIcon from "../assets/doctorIcon.svg"
 import { useTranslation } from "react-i18next"
+import { getTimeBasedGreeting } from "../utils/greeting"
 
 export default function HomePage(){
-  const {userId}=useSelector((state)=>state.auth);
+  const {firstName, userType}=useSelector((state)=>state.auth);
   const navigate=useNavigate();
   const { t } = useTranslation();
+  const [currentTime, setCurrentTime] = useState(() => new Date())
+  const greeting = getTimeBasedGreeting(currentTime)
+  const isPatient = userType === "Patient"
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setCurrentTime(new Date())
+    }, 30000)
+
+    return () => window.clearInterval(intervalId)
+  }, [])
+
    return (
      <section className="min-h-screen w-full overflow-x-hidden bg-rose-100 dark:bg-gray-900 relative"> 
        <motion.div className="min-h-[40vh] sm:min-h-[45vh] w-full bg-amber-100 dark:bg-gray-800 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-20 place-items-center px-3 sm:px-8 py-6 sm:py-0"
@@ -25,6 +39,12 @@ export default function HomePage(){
                 <span>Farishtaa</span>
                 <FarishtaaLogo className="w-14 h-14 sm:w-20 sm:h-20" />
               </h1>
+
+              {isPatient && (
+                <p className="font-semibold text-sm sm:text-base text-red-600 dark:text-red-300 mt-1">
+                  {greeting}, {firstName || "User"}
+                </p>
+              )}
              
               <p className="font-bold text-xl sm:text-3xl dark:text-white">{t('home.tagline')}</p>
 

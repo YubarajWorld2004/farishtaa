@@ -29,6 +29,8 @@ class _DoctorNotificationsScreenState extends State<DoctorNotificationsScreen> {
   int _unreadCount = 0;
   bool _loading = true;
   bool _updating = false;
+  bool _deletingAll = false;
+  String _deletingId = '';
   bool _unreadOnly = false;
 
   @override
@@ -68,7 +70,7 @@ class _DoctorNotificationsScreenState extends State<DoctorNotificationsScreen> {
   }
 
   Future<void> _markAllRead() async {
-    if (_updating) {
+    if (_updating || _deletingAll || _deletingId.isNotEmpty) {
       return;
     }
 
@@ -93,7 +95,7 @@ class _DoctorNotificationsScreenState extends State<DoctorNotificationsScreen> {
   }
 
   Future<void> _markRead(AppNotificationModel item) async {
-    if (_updating || item.isRead) {
+    if (_updating || _deletingAll || _deletingId.isNotEmpty || item.isRead) {
       return;
     }
 
@@ -114,6 +116,117 @@ class _DoctorNotificationsScreenState extends State<DoctorNotificationsScreen> {
     } finally {
       if (mounted) {
         setState(() => _updating = false);
+      }
+    }
+  }
+
+  Future<void> _deleteNotification(AppNotificationModel item) async {
+    if (_updating || _deletingAll || _deletingId.isNotEmpty) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete notification?'),
+        content: const Text('This notification will be removed permanently.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() => _deletingId = item.id);
+    try {
+      final result = await widget.dashboardService.deleteNotification(
+        token: widget.session.token,
+        notificationId: item.id,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _notifications = _notifications
+            .where((notification) => notification.id != item.id)
+            .toList();
+        _unreadCount = result.unreadCount;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _deletingId = '');
+      }
+    }
+  }
+
+  Future<void> _deleteAllNotifications() async {
+    if (_updating || _deletingAll || _deletingId.isNotEmpty) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete all notifications?'),
+        content: const Text('All notifications will be removed permanently.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete all'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() => _deletingAll = true);
+    try {
+      final result = await widget.dashboardService.deleteAllNotifications(
+        token: widget.session.token,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _notifications = <AppNotificationModel>[];
+        _unreadCount = result.unreadCount;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _deletingAll = false);
       }
     }
   }
@@ -179,11 +292,34 @@ class _DoctorNotificationsScreenState extends State<DoctorNotificationsScreen> {
                 },
               ),
               OutlinedButton.icon(
-                onPressed: (_updating || _loading || _unreadCount == 0)
+                onPressed:
+                    (_updating ||
+                        _deletingAll ||
+                        _deletingId.isNotEmpty ||
+                        _loading ||
+                        _unreadCount == 0)
                     ? null
                     : _markAllRead,
                 icon: const Icon(Icons.done_all),
                 label: const Text('Mark all read'),
+              ),
+              OutlinedButton.icon(
+                onPressed:
+                    (_updating ||
+                        _deletingAll ||
+                        _deletingId.isNotEmpty ||
+                        _loading ||
+                        _notifications.isEmpty)
+                    ? null
+                    : _deleteAllNotifications,
+                icon: _deletingAll
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.delete_sweep_outlined),
+                label: const Text('Delete all'),
               ),
             ],
           ),
@@ -255,12 +391,33 @@ class _DoctorNotificationsScreenState extends State<DoctorNotificationsScreen> {
                           ),
                           if (!item.isRead)
                             OutlinedButton.icon(
-                              onPressed: _updating
+                              onPressed:
+                                  (_updating ||
+                                      _deletingAll ||
+                                      _deletingId.isNotEmpty)
                                   ? null
                                   : () => _markRead(item),
                               icon: const Icon(Icons.mark_email_read_outlined),
                               label: const Text('Mark read'),
                             ),
+                          OutlinedButton.icon(
+                            onPressed:
+                                (_updating ||
+                                    _deletingAll ||
+                                    _deletingId.isNotEmpty)
+                                ? null
+                                : () => _deleteNotification(item),
+                            icon: _deletingId == item.id
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.delete_outline),
+                            label: const Text('Delete'),
+                          ),
                         ],
                       ),
                     ],

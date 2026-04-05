@@ -136,18 +136,50 @@ class _DoctorTelemedicineScreenState extends State<DoctorTelemedicineScreen> {
       if (!mounted || _loadingMessages) {
         return;
       }
-      await _loadMessages();
+      await _loadMessages(silent: true);
     });
   }
 
-  Future<void> _loadMessages() async {
+  bool _hasMessageListChanged(List<TelemedicineMessageModel> next) {
+    if (_messages.length != next.length) {
+      return true;
+    }
+
+    for (var index = 0; index < _messages.length; index += 1) {
+      final previous = _messages[index];
+      final incoming = next[index];
+
+      if (previous.id != incoming.id) {
+        return true;
+      }
+      if (previous.content != incoming.content) {
+        return true;
+      }
+      if ((previous.createdAt?.millisecondsSinceEpoch ?? 0) !=
+          (incoming.createdAt?.millisecondsSinceEpoch ?? 0)) {
+        return true;
+      }
+      if (previous.attachments.length != incoming.attachments.length) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  Future<void> _loadMessages({bool silent = false}) async {
     final active = _activeSession;
     if (active == null) {
       setState(() => _messages = <TelemedicineMessageModel>[]);
       return;
     }
 
-    setState(() => _loadingMessages = true);
+    if (silent) {
+      _loadingMessages = true;
+    } else {
+      setState(() => _loadingMessages = true);
+    }
+
     try {
       final messages = await widget.dashboardService.getTelemedicineMessages(
         token: widget.session.token,
@@ -157,7 +189,18 @@ class _DoctorTelemedicineScreenState extends State<DoctorTelemedicineScreen> {
       if (!mounted) {
         return;
       }
-      setState(() => _messages = messages);
+
+      if (silent) {
+        _loadingMessages = false;
+        if (_hasMessageListChanged(messages)) {
+          setState(() => _messages = messages);
+        }
+      } else {
+        setState(() {
+          _messages = messages;
+          _loadingMessages = false;
+        });
+      }
     } catch (error) {
       if (!mounted) {
         return;
@@ -168,7 +211,11 @@ class _DoctorTelemedicineScreenState extends State<DoctorTelemedicineScreen> {
       ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
-        setState(() => _loadingMessages = false);
+        if (silent) {
+          _loadingMessages = false;
+        } else if (_loadingMessages) {
+          setState(() => _loadingMessages = false);
+        }
       }
     }
   }
@@ -333,7 +380,7 @@ class _DoctorTelemedicineScreenState extends State<DoctorTelemedicineScreen> {
               : Column(
                   children: [
                     Expanded(
-                      child: _loadingMessages
+                      child: _loadingMessages && _messages.isEmpty
                           ? const Center(child: CircularProgressIndicator())
                           : _messages.isEmpty
                           ? const Center(child: Text('No messages yet.'))

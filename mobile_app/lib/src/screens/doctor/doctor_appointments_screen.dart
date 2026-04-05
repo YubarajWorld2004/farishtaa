@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/appointment_models.dart';
 import '../../models/auth_models.dart';
 import '../../services/doctor_dashboard_service.dart';
+import 'doctor_prescriptions_screen.dart';
 
 class DoctorAppointmentsScreen extends StatefulWidget {
   const DoctorAppointmentsScreen({
@@ -535,6 +536,31 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                             OutlinedButton(
                               onPressed: () => _showPaymentDetails(appointment),
                               child: const Text('View Payment'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => Scaffold(
+                                      appBar: AppBar(
+                                        title: const Text(
+                                          'Prescription Center',
+                                        ),
+                                      ),
+                                      body: SafeArea(
+                                        child: DoctorPrescriptionsScreen(
+                                          session: widget.session,
+                                          dashboardService:
+                                              widget.dashboardService,
+                                          initialAppointmentId: appointment.id,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.receipt_long_outlined),
+                              label: const Text('Prescription'),
                             ),
                             if (appointment.status == 'pending') ...[
                               ElevatedButton.icon(

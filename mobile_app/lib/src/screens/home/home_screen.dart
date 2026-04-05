@@ -1,13 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/app_config.dart';
+import '../../config/app_assets.dart';
 import '../../models/auth_models.dart';
 import '../../models/doctor.dart';
 import '../../services/doctor_service.dart';
 import '../../services/location_service.dart';
 import '../../services/patient_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/greeting_utils.dart';
 import 'doctor_profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -41,11 +46,32 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedCategory = 'Cardiologist';
   late double _userLat = AppConfig.defaultLat;
   late double _userLng = AppConfig.defaultLng;
+  DateTime _currentTime = DateTime.now();
+  Timer? _greetingTimer;
 
   @override
   void initState() {
     super.initState();
+    _startGreetingTicker();
     _bootstrap();
+  }
+
+  @override
+  void dispose() {
+    _greetingTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startGreetingTicker() {
+    _greetingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _currentTime = DateTime.now();
+      });
+    });
   }
 
   Future<void> _bootstrap() async {
@@ -124,6 +150,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final displayName = widget.session.firstName.isEmpty
+        ? 'User'
+        : widget.session.firstName;
+
     return RefreshIndicator(
       onRefresh: _bootstrap,
       child: ListView(
@@ -133,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 child: Text(
-                  'Hello, ${widget.session.firstName.isEmpty ? 'User' : widget.session.firstName}',
+                  '${getTimeBasedGreeting(_currentTime)}, $displayName',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -163,38 +193,66 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Feel Unwell?',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Feel Unwell?',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Ask Farishtaa AI for instant symptom guidance and find specialists nearby.',
+                        style: TextStyle(color: Colors.white, height: 1.4),
+                      ),
+                      const SizedBox(height: 10),
+                      const Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _HeroPill(
+                            assetPath: AppAssets.brain,
+                            label: 'AI Guidance',
+                          ),
+                          _HeroPill(
+                            assetPath: AppAssets.doctorIcon,
+                            label: 'Doctor Finder',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton.tonal(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: AppTheme.dangerRed,
+                        ),
+                        onPressed: widget.onOpenChat,
+                        child: const Text('Chat Now'),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white70),
+                        ),
+                        onPressed: widget.onOpenAppointments,
+                        child: const Text('My Appointments'),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Ask Farishtaa AI for instant symptom guidance and find specialists nearby.',
-                  style: TextStyle(color: Colors.white, height: 1.4),
-                ),
-                const SizedBox(height: 12),
-                FilledButton.tonal(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppTheme.dangerRed,
-                  ),
-                  onPressed: widget.onOpenChat,
-                  child: const Text('Chat Now'),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white70),
-                  ),
-                  onPressed: widget.onOpenAppointments,
-                  child: const Text('My Appointments'),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 92,
+                  height: 92,
+                  child: SvgPicture.asset(AppAssets.chat, fit: BoxFit.contain),
                 ),
               ],
             ),
@@ -269,6 +327,39 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+class _HeroPill extends StatelessWidget {
+  const _HeroPill({required this.assetPath, required this.label});
+
+  final String assetPath;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(width: 16, height: 16, child: SvgPicture.asset(assetPath)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DoctorCard extends StatelessWidget {
   const _DoctorCard({
     required this.doctor,
@@ -307,6 +398,8 @@ class _DoctorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -317,14 +410,19 @@ class _DoctorCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 26,
-                  backgroundColor: const Color(0xFFD1F0EF),
+                  backgroundColor: AppTheme.isDark(context)
+                      ? const Color(0xFF243849)
+                      : const Color(0xFFD1F0EF),
                   backgroundImage: doctor.photoUrl.isNotEmpty
                       ? NetworkImage(doctor.photoUrl)
                       : null,
                   child: doctor.photoUrl.isEmpty
-                      ? Text(
-                          doctor.name.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                      ? Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: SvgPicture.asset(
+                            AppAssets.doctorIcon,
+                            fit: BoxFit.contain,
+                          ),
                         )
                       : null,
                 ),
@@ -340,7 +438,7 @@ class _DoctorCard extends StatelessWidget {
                       ),
                       Text(
                         doctor.speciality,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppTheme.dangerRed,
                           fontWeight: FontWeight.w600,
                         ),
@@ -349,7 +447,7 @@ class _DoctorCard extends StatelessWidget {
                       Text(
                         '${doctor.experience} years experience'
                         '${doctor.distanceKm == null ? '' : ' | ${doctor.distanceKm!.toStringAsFixed(1)} km away'}',
-                        style: const TextStyle(color: Colors.black54),
+                        style: TextStyle(color: muted),
                       ),
                     ],
                   ),

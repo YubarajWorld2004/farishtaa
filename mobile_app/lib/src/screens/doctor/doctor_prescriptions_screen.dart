@@ -16,10 +16,12 @@ class DoctorPrescriptionsScreen extends StatefulWidget {
     super.key,
     required this.session,
     required this.dashboardService,
+    this.initialAppointmentId,
   });
 
   final UserSession session;
   final DoctorDashboardService dashboardService;
+  final String? initialAppointmentId;
 
   @override
   State<DoctorPrescriptionsScreen> createState() =>
@@ -60,7 +62,10 @@ class _DoctorPrescriptionsScreenState extends State<DoctorPrescriptionsScreen> {
     try {
       final results = await Future.wait<dynamic>([
         widget.dashboardService.getPrescriptions(token: widget.session.token),
-        widget.dashboardService.getAppointments(token: widget.session.token),
+        widget.dashboardService.getAppointments(
+          token: widget.session.token,
+          status: 'accepted',
+        ),
       ]);
 
       if (!mounted) {
@@ -68,15 +73,22 @@ class _DoctorPrescriptionsScreenState extends State<DoctorPrescriptionsScreen> {
       }
 
       final appointments = (results[1] as List<AppointmentModel>)
-          .where(
-            (item) => item.status == 'accepted' || item.status == 'completed',
-          )
+          .where((item) => item.status == 'accepted')
           .toList();
 
       setState(() {
         _prescriptions = results[0] as List<PrescriptionModel>;
         _appointments = appointments;
+
+        final selectedStillValid = _selectedAppointmentId.isNotEmpty &&
+            appointments.any((item) => item.id == _selectedAppointmentId);
+        if (!selectedStillValid) {
+          _selectedAppointmentId = '';
+          _patientIdController.clear();
+        }
       });
+
+      _applyInitialAppointmentSelection();
     } catch (error) {
       if (!mounted) {
         return;
@@ -119,6 +131,20 @@ class _DoctorPrescriptionsScreenState extends State<DoctorPrescriptionsScreen> {
     }
 
     _patientIdController.text = selected?.patient.id ?? '';
+  }
+
+  void _applyInitialAppointmentSelection() {
+    final requestedId = (widget.initialAppointmentId ?? '').trim();
+    if (requestedId.isEmpty || _selectedAppointmentId == requestedId) {
+      return;
+    }
+
+    final hasMatch = _appointments.any((item) => item.id == requestedId);
+    if (!hasMatch) {
+      return;
+    }
+
+    _setAppointment(requestedId);
   }
 
   void _updateMedicine(int index, _MedicineInput medicine) {
@@ -231,6 +257,113 @@ class _DoctorPrescriptionsScreenState extends State<DoctorPrescriptionsScreen> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Could not open file.')));
     }
+  }
+
+  String _formatIssuedAt(DateTime? value) {
+    return DateFormat('dd MMM yyyy, h:mm a').format(value ?? DateTime.now());
+  }
+
+  void _showPrescriptionDetails(PrescriptionModel item) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.74,
+          maxChildSize: 0.92,
+          builder: (_, controller) {
+            return ListView(
+              controller: controller,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              children: [
+                Text(
+                  'Digital Prescription',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.patientName,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _formatIssuedAt(item.issuedAt),
+                  style: const TextStyle(color: Colors.black54),
+                ),
+                if (item.appointmentDate.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Appointment: ${item.appointmentDate} ${item.appointmentSlot}',
+                  ),
+                ],
+                const SizedBox(height: 12),
+                _PrescriptionDetailSection(
+                  title: 'Diagnosis',
+                  child: Text(
+                    item.diagnosis.isEmpty ? 'Not provided' : item.diagnosis,
+                  ),
+                ),
+                _PrescriptionDetailSection(
+                  title: 'Clinical notes',
+                  child: Text(item.notes.isEmpty ? 'Not provided' : item.notes),
+                ),
+                _PrescriptionDetailSection(
+                  title: 'Medicines',
+                  child: item.medicines.isEmpty
+                      ? const Text('No medicines listed')
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: item.medicines.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final med = entry.value;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${index + 1}. ${med.name.isEmpty ? 'Unnamed medicine' : med.name}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Dosage: ${med.dosage.isEmpty ? '-' : med.dosage}',
+                                  ),
+                                  Text(
+                                    'Frequency: ${med.frequency.isEmpty ? '-' : med.frequency}',
+                                  ),
+                                  Text(
+                                    'Duration: ${med.duration.isEmpty ? '-' : med.duration}',
+                                  ),
+                                  Text(
+                                    'Instructions: ${med.instructions.isEmpty ? '-' : med.instructions}',
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                ),
+                if (item.file != null)
+                  OutlinedButton.icon(
+                    onPressed: () => _openUrl(item.file!.fileUrl),
+                    icon: const Icon(Icons.download_outlined),
+                    label: const Text('Open attached file'),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -462,50 +595,107 @@ class _DoctorPrescriptionsScreenState extends State<DoctorPrescriptionsScreen> {
             ..._prescriptions.map(
               (item) => Card(
                 margin: const EdgeInsets.only(bottom: 10),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.patientName,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        DateFormat(
-                          'dd MMM yyyy, h:mm a',
-                        ).format(item.issuedAt ?? DateTime.now()),
-                        style: const TextStyle(color: Colors.black54),
-                      ),
-                      if (item.diagnosis.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text('Diagnosis: ${item.diagnosis}'),
-                      ],
-                      if (item.medicines.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text('Medicines: ${item.medicines.length}'),
-                      ],
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          if (item.file != null)
-                            OutlinedButton.icon(
-                              onPressed: () => _openUrl(item.file!.fileUrl),
-                              icon: const Icon(Icons.download_outlined),
-                              label: const Text('Open File'),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => _showPrescriptionDetails(item),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.patientName,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _formatIssuedAt(item.issuedAt),
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                        if (item.diagnosis.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text('Diagnosis: ${item.diagnosis}'),
+                        ],
+                        if (item.medicines.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Medicines:',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 4),
+                          ...item.medicines
+                              .take(3)
+                              .map(
+                                (medicine) => Text(
+                                  '• ${medicine.name.isEmpty ? 'Unnamed medicine' : medicine.name}',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                          if (item.medicines.length > 3)
+                            Text(
+                              '+${item.medicines.length - 3} more medicine(s)',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
                             ),
                         ],
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () => _showPrescriptionDetails(item),
+                              icon: const Icon(Icons.description_outlined),
+                              label: const Text('View Prescription'),
+                            ),
+                            if (item.file != null)
+                              OutlinedButton.icon(
+                                onPressed: () => _openUrl(item.file!.fileUrl),
+                                icon: const Icon(Icons.download_outlined),
+                                label: const Text('Open File'),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _PrescriptionDetailSection extends StatelessWidget {
+  const _PrescriptionDetailSection({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            child,
+          ],
+        ),
       ),
     );
   }

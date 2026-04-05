@@ -30,6 +30,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   int _unreadCount = 0;
   bool _loading = true;
   bool _markingAll = false;
+  bool _deletingAll = false;
+  String _deletingId = '';
 
   Timer? _pollTimer;
 
@@ -85,7 +87,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _markAllRead() async {
-    if (_markingAll) {
+    if (_markingAll || _deletingAll || _deletingId.isNotEmpty) {
       return;
     }
 
@@ -124,6 +126,117 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } finally {
       if (mounted) {
         setState(() => _markingAll = false);
+      }
+    }
+  }
+
+  Future<void> _deleteNotification(AppNotificationModel notification) async {
+    if (_markingAll || _deletingAll || _deletingId.isNotEmpty) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete notification?'),
+        content: const Text('This notification will be removed permanently.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() => _deletingId = notification.id);
+    try {
+      final result = await widget.patientService.deleteNotification(
+        token: widget.session.token,
+        notificationId: notification.id,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _notifications = _notifications
+            .where((item) => item.id != notification.id)
+            .toList();
+        _unreadCount = result.unreadCount;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _deletingId = '');
+      }
+    }
+  }
+
+  Future<void> _deleteAllNotifications() async {
+    if (_markingAll || _deletingAll || _deletingId.isNotEmpty) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete all notifications?'),
+        content: const Text('All notifications will be removed permanently.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete all'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() => _deletingAll = true);
+    try {
+      final result = await widget.patientService.deleteAllNotifications(
+        token: widget.session.token,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _notifications = <AppNotificationModel>[];
+        _unreadCount = result.unreadCount;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _deletingAll = false);
       }
     }
   }
@@ -234,9 +347,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                   ),
                 ),
-              const SizedBox(width: 8),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
               OutlinedButton(
-                onPressed: (_markingAll || _unreadCount == 0)
+                onPressed:
+                    (_markingAll ||
+                        _deletingAll ||
+                        _deletingId.isNotEmpty ||
+                        _unreadCount == 0)
                     ? null
                     : _markAllRead,
                 child: _markingAll
@@ -246,6 +369,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Text('Mark all read'),
+              ),
+              OutlinedButton(
+                onPressed:
+                    (_markingAll ||
+                        _deletingAll ||
+                        _deletingId.isNotEmpty ||
+                        _notifications.isEmpty)
+                    ? null
+                    : _deleteAllNotifications,
+                child: _deletingAll
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Delete all'),
               ),
             ],
           ),
@@ -293,9 +432,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       ),
                     ],
                   ),
-                  trailing: item.isRead
-                      ? null
-                      : const Icon(Icons.circle, size: 10, color: Colors.red),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!item.isRead)
+                        const Icon(Icons.circle, size: 10, color: Colors.red),
+                      IconButton(
+                        tooltip: 'Delete notification',
+                        onPressed:
+                            (_markingAll ||
+                                _deletingAll ||
+                                _deletingId.isNotEmpty)
+                            ? null
+                            : () => _deleteNotification(item),
+                        icon: _deletingId == item.id
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.delete_outline),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -33,5 +33,7 @@ router.post('/prescriptions', uploadPrescriptionFile.single('file'), prescriptio
 router.get('/notifications', notificationController.getMyNotifications);
 router.patch('/notifications/read-all', notificationController.markAllMyNotificationsRead);
 router.patch('/notifications/:notificationId/read', notificationController.markMyNotificationRead);
+router.delete('/notifications', notificationController.deleteAllMyNotifications);
+router.delete('/notifications/:notificationId', notificationController.deleteMyNotification);
 
 module.exports = router;

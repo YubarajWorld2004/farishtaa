@@ -9,6 +9,7 @@ import {
   HiOutlineCheckCircle,
   HiOutlineXCircle,
   HiOutlineClipboardCheck,
+  HiOutlineDocumentText,
   HiOutlineVideoCamera,
 } from "react-icons/hi";
 import PaymentDetailsModal from "../../common/PaymentDetailsModal.jsx";
@@ -386,6 +387,14 @@ const DoctorAppointments = () => {
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200"
                     >
                       View Payment
+                    </button>
+
+                    <button
+                      onClick={() => navigate(`/prescriptions?appointmentId=${appointment._id}`)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200"
+                    >
+                      <HiOutlineDocumentText size={14} />
+                      {t("prescription.title", { defaultValue: "Prescriptions" })}
                     </button>
 
                     {appointment.status === "pending" && (

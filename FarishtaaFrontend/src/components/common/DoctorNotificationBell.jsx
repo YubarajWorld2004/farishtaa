@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { HiOutlineBell } from "react-icons/hi";
+import { HiOutlineBell, HiOutlineTrash } from "react-icons/hi";
 import { notifyInfo } from "../../utils/hotToast.jsx";
 import { connectRealtimeSocket, disconnectRealtimeSocket } from "../../realtime/socketClient.js";
 import { registerBrowserPushToken, subscribeForegroundFcmMessages } from "../../realtime/fcmClient.js";
@@ -64,6 +64,8 @@ const DoctorNotificationBell = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [deletingIds, setDeletingIds] = useState([]);
+  const [isClearingAll, setIsClearingAll] = useState(false);
 
   const lastCheckedRef = useRef(null);
   const seenIdsRef = useRef(new Set());
@@ -180,6 +182,8 @@ const DoctorNotificationBell = () => {
       setNotifications([]);
       setUnreadCount(0);
       setIsOpen(false);
+      setDeletingIds([]);
+      setIsClearingAll(false);
       lastCheckedRef.current = null;
       seenIdsRef.current = new Set();
       initializedRef.current = false;
@@ -317,6 +321,84 @@ const DoctorNotificationBell = () => {
     navigate(getNotificationRoute(notification));
   };
 
+  const handleDeleteNotification = async (notification, event) => {
+    event.stopPropagation();
+
+    if (!notification?._id || isClearingAll || deletingIds.includes(notification._id)) {
+      return;
+    }
+
+    const confirmed = window.confirm("Delete this notification?");
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingIds((previous) => [...previous, notification._id]);
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/doctor-dashboard/notifications/${notification._id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return;
+      }
+
+      setNotifications((previous) => previous.filter((item) => item._id !== notification._id));
+      seenIdsRef.current.delete(notification._id);
+
+      if (Number.isFinite(data.unreadCount)) {
+        setUnreadCount(data.unreadCount);
+      } else if (!notification.isRead) {
+        setUnreadCount((previous) => Math.max(0, previous - 1));
+      }
+    } catch (error) {
+      console.error("Failed to delete notification", error);
+    } finally {
+      setDeletingIds((previous) => previous.filter((id) => id !== notification._id));
+    }
+  };
+
+  const handleDeleteAllNotifications = async () => {
+    if (isClearingAll || notifications.length === 0) {
+      return;
+    }
+
+    const confirmed = window.confirm("Delete all notifications?");
+    if (!confirmed) {
+      return;
+    }
+
+    setIsClearingAll(true);
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/doctor-dashboard/notifications`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return;
+      }
+
+      setNotifications([]);
+      seenIdsRef.current = new Set();
+      setDeletingIds([]);
+      setUnreadCount(Number.isFinite(data.unreadCount) ? data.unreadCount : 0);
+    } catch (error) {
+      console.error("Failed to delete all notifications", error);
+    } finally {
+      setIsClearingAll(false);
+    }
+  };
+
   return (
     <div className="relative">
       <button
@@ -339,8 +421,20 @@ const DoctorNotificationBell = () => {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-[min(90vw,360px)] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl overflow-hidden z-50">
           <div className="px-3 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/60">
-            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Doctor notifications</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Live updates from your patients</p>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Doctor notifications</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Live updates from your patients</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleDeleteAllNotifications}
+                disabled={isClearingAll || notifications.length === 0}
+                className="text-xs px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              >
+                {isClearingAll ? "Deleting..." : "Delete all"}
+              </button>
+            </div>
           </div>
 
           <div className="max-h-80 overflow-y-auto">
@@ -350,25 +444,44 @@ const DoctorNotificationBell = () => {
               <div className="p-4 text-sm text-gray-500 dark:text-gray-400">No notifications yet.</div>
             ) : (
               notifications.map((notification) => (
-                <button
+                <div
                   key={notification._id}
-                  type="button"
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`w-full text-left px-3 py-3 border-b last:border-b-0 border-gray-100 dark:border-gray-800 hover:bg-red-50/60 dark:hover:bg-red-900/10 transition ${
+                  className={`flex items-stretch border-b last:border-b-0 border-gray-100 dark:border-gray-800 ${
                     notification.isRead ? "opacity-80" : ""
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-1">
-                      {notification.title || "Patient update"}
+                  <button
+                    type="button"
+                    onClick={() => handleNotificationClick(notification)}
+                    className="flex-1 min-w-0 text-left px-3 py-3 hover:bg-red-50/60 dark:hover:bg-red-900/10 transition"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-1">
+                        {notification.title || "Patient update"}
+                      </p>
+                      {!notification.isRead && <span className="mt-1 h-2 w-2 rounded-full bg-red-500" />}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">{notification.message}</p>
+                    <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                      {formatRelativeTime(notification.createdAt)}
                     </p>
-                    {!notification.isRead && <span className="mt-1 h-2 w-2 rounded-full bg-red-500" />}
+                  </button>
+                  <div className="flex items-center px-2 border-l border-gray-100 dark:border-gray-800">
+                    <button
+                      type="button"
+                      onClick={(event) => handleDeleteNotification(notification, event)}
+                      disabled={isClearingAll || deletingIds.includes(notification._id)}
+                      className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      title="Delete notification"
+                    >
+                      {deletingIds.includes(notification._id) ? (
+                        <span className="text-[10px]">...</span>
+                      ) : (
+                        <HiOutlineTrash size={15} />
+                      )}
+                    </button>
                   </div>
-                  <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">{notification.message}</p>
-                  <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
-                    {formatRelativeTime(notification.createdAt)}
-                  </p>
-                </button>
+                </div>
               ))
             )}
           </div>
