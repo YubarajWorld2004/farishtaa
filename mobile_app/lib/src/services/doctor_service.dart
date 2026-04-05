@@ -41,4 +41,46 @@ class DoctorService {
         .map(DoctorListItem.fromJson)
         .toList();
   }
+
+  Future<DoctorListItem> getDoctorById({
+    required String doctorId,
+    String? token,
+  }) async {
+    final encodedDoctorId = Uri.encodeComponent(doctorId);
+    final response = await _apiClient.get(
+      '/api/doctor/view-profile/$encodedDoctorId',
+      token: token,
+    );
+
+    final doctorRaw = response['doctor'];
+    if (doctorRaw is! Map<String, dynamic>) {
+      throw const ApiException('Invalid doctor profile response');
+    }
+    return DoctorListItem.fromJson(doctorRaw);
+  }
+
+  Future<DoctorReview> addReview({
+    required String token,
+    required String doctorId,
+    required String patientId,
+    required int rating,
+    required String review,
+  }) async {
+    final response = await _apiClient.post(
+      '/api/doctor/add-review',
+      token: token,
+      body: {
+        'doctorId': doctorId,
+        'patientId': patientId,
+        'rating': rating,
+        'review': review,
+      },
+    );
+
+    final reviewRaw = response['newreview'];
+    if (reviewRaw is! Map<String, dynamic>) {
+      throw const ApiException('Invalid review response');
+    }
+    return DoctorReview.fromJson(reviewRaw);
+  }
 }

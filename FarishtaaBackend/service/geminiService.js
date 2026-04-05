@@ -1,6 +1,55 @@
 const {GoogleGenAI} = require("@google/genai");
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const ai = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+  : null;
+
+const normalizeLanguage = (language) => {
+  const normalized = String(language || '').trim().toLowerCase();
+  const map = {
+    en: 'English',
+    english: 'English',
+    hi: 'Hindi',
+    hindi: 'Hindi',
+    or: 'Odia',
+    od: 'Odia',
+    odia: 'Odia',
+    oriya: 'Odia',
+  };
+
+  return map[normalized] || (normalized ? language : 'English');
+};
+
+const fallbackSymptomReply = (language) => {
+  const normalized = String(language || '').trim().toLowerCase();
+
+  if (normalized === 'hi' || normalized === 'hindi') {
+    return [
+      'Maaf kijiye, is samay AI symptom checker asthayi roop se upalabdh nahin hai.',
+      'Aap apne lakshan dobara bhejein, ya turant doctor se paramarsh karein.',
+      'Yadi tez chhati dard, saans lene mein dikkat, behoshi, zyada bleeding, ya tez bukhar hai to turant emergency care lein.',
+    ].join(' ');
+  }
+
+  if (
+    normalized === 'or' ||
+    normalized === 'od' ||
+    normalized === 'odia' ||
+    normalized === 'oriya'
+  ) {
+    return [
+      'Kshama karantu, bartaman AI symptom checker samayik bhabe upalabdha nuhen.',
+      'Dayakari punithare lakshana pathantu kimba sigra daktaranka saha samparka karantu.',
+      'Jadi severe chest pain, breathing difficulty, fainting, heavy bleeding, ba high fever achhi, turanta emergency care neantu.',
+    ].join(' ');
+  }
+
+  return [
+    'Sorry, Farishtaa AI is temporarily unavailable right now.',
+    'Please try sending your symptoms again, or consult a doctor directly.',
+    'If you have severe chest pain, breathing difficulty, fainting, heavy bleeding, or high fever, seek emergency care immediately.',
+  ].join(' ');
+};
 
 const createMessagesString = (messages) => {
   return messages.map((message) => `${message.role} : ${message.content}`).join('\n');
@@ -63,6 +112,14 @@ If female, consider gender-specific conditions when relevant.
 
 async function generateContent(language, userPrompt, messages = [], userContext = null) {
   try {
+    if (!userPrompt || !String(userPrompt).trim()) {
+      return fallbackSymptomReply(language);
+    }
+
+    if (!ai) {
+      return fallbackSymptomReply(language);
+    }
+
     const systemPrompt = buildSystemPrompt(userContext);
     const recentChat = messages.map((m) => ({
       role: m.role === 'patient' ? 'user' : 'assistant',
@@ -76,7 +133,7 @@ async function generateContent(language, userPrompt, messages = [], userContext 
 
     const languageToFollow = {
       role: 'user',
-      content: `Please respond in ${language} language.`,
+      content: `Please respond in ${normalizeLanguage(language)} language.`,
     };
 
     const finalMessages = [systemPrompt, ...recentChat, newPrompt, languageToFollow];
@@ -91,7 +148,7 @@ async function generateContent(language, userPrompt, messages = [], userContext 
     return text.replace(/```json/g, '').replace(/```/g, '').trim();
   } catch (err) {
     console.error('geminiService.generateContent error:', err);
-    throw err;
+    return fallbackSymptomReply(language);
   }
 }
 

@@ -2,23 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/app_config.dart';
+import '../../models/auth_models.dart';
 import '../../models/doctor.dart';
 import '../../services/doctor_service.dart';
 import '../../services/location_service.dart';
+import '../../services/patient_service.dart';
 import '../../theme/app_theme.dart';
 import 'doctor_profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
-    required this.firstName,
+    required this.session,
     required this.doctorService,
+    required this.patientService,
     required this.onOpenChat,
+    required this.onOpenAppointments,
+    required this.onOpenNotifications,
   });
 
-  final String firstName;
+  final UserSession session;
   final DoctorService doctorService;
+  final PatientService patientService;
   final VoidCallback onOpenChat;
+  final VoidCallback onOpenAppointments;
+  final VoidCallback onOpenNotifications;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -26,7 +34,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _locationService = LocationService();
-  
+
   List<String> _categories = <String>[];
   List<DoctorListItem> _doctors = <DoctorListItem>[];
   bool _loading = true;
@@ -125,14 +133,14 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 child: Text(
-                  'Hello, ${widget.firstName.isEmpty ? 'User' : widget.firstName}',
+                  'Hello, ${widget.session.firstName.isEmpty ? 'User' : widget.session.firstName}',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
               IconButton(
-                onPressed: _bootstrap,
+                onPressed: widget.onOpenNotifications,
                 icon: const Icon(Icons.notifications_none),
               ),
             ],
@@ -178,6 +186,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   onPressed: widget.onOpenChat,
                   child: const Text('Chat Now'),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white70),
+                  ),
+                  onPressed: widget.onOpenAppointments,
+                  child: const Text('My Appointments'),
                 ),
               ],
             ),
@@ -241,7 +258,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ..._doctors.map(
             (doctor) => _DoctorCard(
               doctor: doctor,
-              onOpenChat: widget.onOpenChat,
+              session: widget.session,
+              doctorService: widget.doctorService,
+              patientService: widget.patientService,
             ),
           ),
         ],
@@ -251,17 +270,26 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _DoctorCard extends StatelessWidget {
-  const _DoctorCard({required this.doctor, required this.onOpenChat});
+  const _DoctorCard({
+    required this.doctor,
+    required this.session,
+    required this.doctorService,
+    required this.patientService,
+  });
 
   final DoctorListItem doctor;
-  final VoidCallback onOpenChat;
+  final UserSession session;
+  final DoctorService doctorService;
+  final PatientService patientService;
 
   Future<void> _openDirections(BuildContext context) async {
     final lat = doctor.latitude;
     final lng = doctor.longitude;
     if (lat == null || lng == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Directions are unavailable for this doctor')),
+        const SnackBar(
+          content: Text('Directions are unavailable for this doctor'),
+        ),
       );
       return;
     }
@@ -390,7 +418,10 @@ class _DoctorCard extends StatelessWidget {
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (_) => DoctorProfileScreen(
-                            doctor: doctor,
+                            initialDoctor: doctor,
+                            session: session,
+                            doctorService: doctorService,
+                            patientService: patientService,
                           ),
                         ),
                       );

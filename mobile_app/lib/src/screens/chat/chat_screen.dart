@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -206,10 +208,28 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) {
         return;
       }
+
+      final shouldRetitle = active.title == 'New Chat';
+      final updatedTitle = _sessionTitleFromPrompt(text);
       setState(() {
         _messages = [..._messages, ...newMessages];
+        if (shouldRetitle) {
+          final updatedSession = ChatSessionModel(
+            id: active!.id,
+            title: updatedTitle,
+            updatedAt: DateTime.now(),
+          );
+          _activeSession = updatedSession;
+          _sessions = _sessions
+              .map(
+                (session) =>
+                    session.id == updatedSession.id ? updatedSession : session,
+              )
+              .toList();
+        }
       });
-      await _bootstrap();
+
+      unawaited(_refreshSessionsInBackground(preferredSessionId: active.id));
     } catch (error) {
       if (!mounted) {
         return;
@@ -221,6 +241,44 @@ class _ChatScreenState extends State<ChatScreen> {
       if (mounted) {
         setState(() => _sending = false);
       }
+    }
+  }
+
+  String _sessionTitleFromPrompt(String prompt) {
+    final text = prompt.trim();
+    if (text.isEmpty) {
+      return 'New Chat';
+    }
+    return text.length > 40 ? '${text.substring(0, 40)}...' : text;
+  }
+
+  Future<void> _refreshSessionsInBackground({
+    required String preferredSessionId,
+  }) async {
+    try {
+      final sessions = await widget.patientService.getSessions(
+        userId: widget.session.userId,
+        token: widget.session.token,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      ChatSessionModel? active = _activeSession;
+      for (final session in sessions) {
+        if (session.id == preferredSessionId) {
+          active = session;
+          break;
+        }
+      }
+
+      setState(() {
+        _sessions = sessions;
+        _activeSession = active;
+      });
+    } catch (_) {
+      // Keep current UI state if background refresh fails.
     }
   }
 
@@ -439,9 +497,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         label: Text(text),
                         onPressed: () {
                           _messageController.text = text;
-                          _messageController.selection = TextSelection.collapsed(
-                            offset: text.length,
-                          );
+                          _messageController.selection =
+                              TextSelection.collapsed(offset: text.length);
                         },
                       ),
                     ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../i18n/app_locale_controller.dart';
+import '../../i18n/app_localizations.dart';
 import '../../models/auth_models.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
@@ -9,10 +11,12 @@ class AuthScreen extends StatefulWidget {
     super.key,
     required this.authService,
     required this.onLoggedIn,
+    required this.localeController,
   });
 
   final AuthService authService;
   final Future<void> Function(UserSession) onLoggedIn;
+  final AppLocaleController localeController;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -91,6 +95,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -101,25 +107,59 @@ class _AuthScreenState extends State<AuthScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 8),
-                Text(
-                  'Farishtaa',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: AppTheme.dangerRed,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Farishtaa',
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.dangerRed,
+                            ),
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      tooltip: l10n.t('language.chooseTitle'),
+                      icon: const Icon(Icons.translate),
+                      onSelected: (value) {
+                        widget.localeController.setLocaleByCode(value);
+                      },
+                      itemBuilder: (_) => <PopupMenuEntry<String>>[
+                        PopupMenuItem<String>(
+                          value: 'en',
+                          child: Text(l10n.t('language.english')),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'hi',
+                          child: Text(l10n.t('language.hindi')),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'or',
+                          child: Text(l10n.t('language.odia')),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Your health angel at your fingertips',
+                  l10n.t('auth.tagline'),
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
                 ),
                 const SizedBox(height: 20),
                 SegmentedButton<bool>(
-                  segments: const [
-                    ButtonSegment<bool>(value: true, label: Text('Login')),
-                    ButtonSegment<bool>(value: false, label: Text('Sign Up')),
+                  segments: [
+                    ButtonSegment<bool>(
+                      value: true,
+                      label: Text(l10n.t('auth.login')),
+                    ),
+                    ButtonSegment<bool>(
+                      value: false,
+                      label: Text(l10n.t('auth.signUp')),
+                    ),
                   ],
                   selected: {_isLogin},
                   onSelectionChanged: (value) {
@@ -132,11 +172,13 @@ class _AuthScreenState extends State<AuthScreen> {
                 if (!_isLogin) ...[
                   TextFormField(
                     controller: _firstNameController,
-                    decoration: const InputDecoration(labelText: 'First name'),
+                    decoration: InputDecoration(
+                      labelText: l10n.t('auth.firstName'),
+                    ),
                     validator: (value) {
                       if (!_isLogin &&
                           (value == null || value.trim().isEmpty)) {
-                        return 'First name is required';
+                        return l10n.t('auth.firstNameRequired');
                       }
                       return null;
                     },
@@ -144,11 +186,13 @@ class _AuthScreenState extends State<AuthScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _lastNameController,
-                    decoration: const InputDecoration(labelText: 'Last name'),
+                    decoration: InputDecoration(
+                      labelText: l10n.t('auth.lastName'),
+                    ),
                     validator: (value) {
                       if (!_isLogin &&
                           (value == null || value.trim().isEmpty)) {
-                        return 'Last name is required';
+                        return l10n.t('auth.lastNameRequired');
                       }
                       return null;
                     },
@@ -158,11 +202,11 @@ class _AuthScreenState extends State<AuthScreen> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: InputDecoration(labelText: l10n.t('auth.email')),
                   validator: (value) {
                     final email = value?.trim() ?? '';
                     if (email.isEmpty || !email.contains('@')) {
-                      return 'Enter a valid email';
+                      return l10n.t('auth.validEmail');
                     }
                     return null;
                   },
@@ -171,10 +215,12 @@ class _AuthScreenState extends State<AuthScreen> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  decoration: InputDecoration(
+                    labelText: l10n.t('auth.password'),
+                  ),
                   validator: (value) {
                     if ((value ?? '').length < 6) {
-                      return 'Password should be at least 6 characters';
+                      return l10n.t('auth.passwordMin');
                     }
                     return null;
                   },
@@ -183,16 +229,19 @@ class _AuthScreenState extends State<AuthScreen> {
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: _userType,
-                    decoration: const InputDecoration(labelText: 'Role'),
-                    items: const [
+                    decoration: InputDecoration(labelText: l10n.t('auth.role')),
+                    items: [
                       DropdownMenuItem(
                         value: 'Patient',
-                        child: Text('Patient'),
+                        child: Text(l10n.t('role.patient')),
                       ),
-                      DropdownMenuItem(value: 'Doctor', child: Text('Doctor')),
+                      DropdownMenuItem(
+                        value: 'Doctor',
+                        child: Text(l10n.t('role.doctor')),
+                      ),
                       DropdownMenuItem(
                         value: 'Hospital',
-                        child: Text('Hospital'),
+                        child: Text(l10n.t('role.hospital')),
                       ),
                     ],
                     onChanged: (value) =>
@@ -205,11 +254,13 @@ class _AuthScreenState extends State<AuthScreen> {
                         child: TextFormField(
                           controller: _ageController,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Age'),
+                          decoration: InputDecoration(
+                            labelText: l10n.t('auth.age'),
+                          ),
                           validator: (value) {
                             final parsed = int.tryParse((value ?? '').trim());
                             if (!_isLogin && (parsed == null || parsed <= 0)) {
-                              return 'Valid age required';
+                              return l10n.t('auth.validAge');
                             }
                             return null;
                           },
@@ -219,21 +270,21 @@ class _AuthScreenState extends State<AuthScreen> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: _gender,
-                          decoration: const InputDecoration(
-                            labelText: 'Gender',
+                          decoration: InputDecoration(
+                            labelText: l10n.t('auth.gender'),
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
                               value: 'Male',
-                              child: Text('Male'),
+                              child: Text(l10n.t('gender.male')),
                             ),
                             DropdownMenuItem(
                               value: 'Female',
-                              child: Text('Female'),
+                              child: Text(l10n.t('gender.female')),
                             ),
                             DropdownMenuItem(
                               value: 'Other',
-                              child: Text('Other'),
+                              child: Text(l10n.t('gender.other')),
                             ),
                           ],
                           onChanged: (value) =>
@@ -252,7 +303,11 @@ class _AuthScreenState extends State<AuthScreen> {
                           width: 22,
                           child: CircularProgressIndicator(strokeWidth: 2.4),
                         )
-                      : Text(_isLogin ? 'Login' : 'Create Account'),
+                      : Text(
+                          _isLogin
+                              ? l10n.t('auth.login')
+                              : l10n.t('auth.createAccount'),
+                        ),
                 ),
               ],
             ),

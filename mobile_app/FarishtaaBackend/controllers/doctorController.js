@@ -4,6 +4,22 @@ const Reviews = require('../model/Reviews');
 const User = require('../model/User');
 const specialistsName=require('../utils/specialistsName');
 
+const normalizeSpecialistTerm = (value) =>
+  String(value || '').trim().replace(/\s+/g, ' ');
+
+const escapeRegex = (value) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const createSpecialistRegex = (value) => {
+  const normalized = normalizeSpecialistTerm(value);
+  if (!normalized) {
+    return null;
+  }
+
+  const escaped = escapeRegex(normalized).replace(/\s+/g, '\\s+');
+  return new RegExp(`\\b${escaped}\\b`, 'i');
+};
+
 exports.postAddDoctor=async (req,res,next)=>{
 const {name ,photoUrl,specialist,experience,degree,languages,address,about,location }=req.body;
 const doctor=new Doctor({
@@ -34,10 +50,12 @@ exports.searchNearbyBySpecialist=async (req,res,next)=>{
  if(!category || typeof(category)!== "string")
     return res.status(400).json({message : "Type Error : not string"})
  const {lat,lng,radius=15000}=req.body;
-const specialist=category;
-const doctorsNearby=await findDoctorsNearby(lat,lng,specialist,radius);
-const hospitalsNearby=await findHospitalsNearby(lat,lng,specialist,radius);
-const userDoctorsNearby=await findUserDoctorsNearby(lat,lng,specialist,radius);
+const specialistRegex=createSpecialistRegex(category);
+if(!specialistRegex)
+  return res.status(400).json({message : "Type Error : invalid specialist"})
+const doctorsNearby=await findDoctorsNearby(lat,lng,specialistRegex,radius);
+const hospitalsNearby=await findHospitalsNearby(lat,lng,specialistRegex,radius);
+const userDoctorsNearby=await findUserDoctorsNearby(lat,lng,specialistRegex,radius);
 const storedResults=[...doctorsNearby,...hospitalsNearby,...userDoctorsNearby];
  res.status(200).json({data : storedResults});
  
@@ -47,10 +65,10 @@ loadFromOsm(lat,lng,radius);
  }
 }
 
-const findDoctorsNearby=async (lat,lng,specialist,radius)=>{
+const findDoctorsNearby=async (lat,lng,specialistRegex,radius)=>{
 return Doctor.find({
 specialist : {
-    $regex :new RegExp(specialist,"i"),
+  $regex : specialistRegex,
 },
 location : {
     $near : {
@@ -64,11 +82,11 @@ location : {
 })
 }
 
-const findUserDoctorsNearby=async (lat,lng,specialist,radius)=>{
+const findUserDoctorsNearby=async (lat,lng,specialistRegex,radius)=>{
   const users = await User.find({
     userType: "Doctor",
     profileCompleted: true,
-    specialist: { $regex: new RegExp(specialist, "i") },
+    specialist: { $regex: specialistRegex },
     location: {
       $near: {
         $geometry: { type: "Point", coordinates: [lng, lat] },
@@ -164,7 +182,7 @@ async function fetchDatafromOSM(lat,lng,radius){
 }
 
 
-const findHospitalsNearby=(lat,lng,specialist,radius)=>{
+const findHospitalsNearby=(lat,lng,specialistRegex,radius)=>{
     return Hospital.aggregate([{
    $geoNear : {
     near :{
@@ -175,7 +193,7 @@ const findHospitalsNearby=(lat,lng,specialist,radius)=>{
     maxDistance : radius,
     spherical : true,
     query: {
-        specialists : {$regex : new RegExp(specialist,"i")},
+      specialists : {$regex : specialistRegex},
     },
    }
 }]);
