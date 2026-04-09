@@ -49,6 +49,9 @@ const FloatingChatWidget = ({ onClose }) => {
   const [showSidebar, setShowSidebar] = useState(false);
   const [hoveredSessionId, setHoveredSessionId] = useState(null);
 
+  const sessionsListQuery = new URLSearchParams({ page: "1", limit: "100" }).toString();
+  const chatsListQuery = new URLSearchParams({ page: "1", limit: "200" }).toString();
+
   const hasSession = !!activeSessionId;
 
   const SUGGESTIONS = [
@@ -85,7 +88,7 @@ const FloatingChatWidget = ({ onClose }) => {
     const fetchSessions = async () => {
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/patient/sessions/${userId}`,
+          `${import.meta.env.VITE_API_BASE_URL}/api/patient/sessions/${userId}?${sessionsListQuery}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!res.ok) return;
@@ -105,7 +108,7 @@ const FloatingChatWidget = ({ onClose }) => {
       try {
         dispatch(setLoading(true));
         const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/patient/symptoms/${userId}/${activeSessionId}`,
+          `${import.meta.env.VITE_API_BASE_URL}/api/patient/symptoms/${userId}/${activeSessionId}?${chatsListQuery}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const data = await res.json();

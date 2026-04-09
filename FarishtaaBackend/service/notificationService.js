@@ -44,20 +44,18 @@ exports.createNotification = async ({
     unreadCount,
   });
 
-  try {
-    await sendFcmPushToUser({
-      userId: recipientId,
-      title: notification.title,
-      body: notification.message,
-      data: {
-        notificationId: String(notification._id),
-        type: String(type),
-        route,
-      },
-    });
-  } catch (error) {
+  sendFcmPushToUser({
+    userId: recipientId,
+    title: notification.title,
+    body: notification.message,
+    data: {
+      notificationId: String(notification._id),
+      type: String(type),
+      route,
+    },
+  }).catch((error) => {
     console.error('FCM push dispatch failed:', error.message);
-  }
+  });
 
   return notification;
 };

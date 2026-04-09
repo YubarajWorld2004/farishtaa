@@ -1,4 +1,7 @@
 # ===== ENV FILES =====
+/.env
+/.env.*
+!/.env.example
 FarishtaaBackend/.env
 FarishtaaFrontend/.env
 

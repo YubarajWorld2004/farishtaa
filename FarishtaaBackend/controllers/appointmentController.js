@@ -145,6 +145,22 @@ const validateDateString = (value) => {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 };
 
+const parsePagination = (pageValue, limitValue, defaultLimit = 20, maxLimit = 100) => {
+  const parsedPage = Number.parseInt(pageValue, 10);
+  const parsedLimit = Number.parseInt(limitValue, 10);
+
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+    ? Math.min(parsedLimit, maxLimit)
+    : defaultLimit;
+
+  return {
+    page,
+    limit,
+    skip: (page - 1) * limit,
+  };
+};
+
 const getValidatedBookingContext = async ({ patientId, doctorId, appointmentDate, slotTime }) => {
   if (!doctorId || !validateDateString(appointmentDate) || !slotTime) {
     throw createRequestError(
@@ -574,11 +590,27 @@ exports.verifyAppointmentPaymentAndBook = async (req, res) => {
 
 exports.getPatientAppointments = async (req, res) => {
   try {
-    const appointments = await Appointment.find({ patient: req.userId })
-      .populate({ path: 'doctor', select: 'firstName lastName specialist fee clinicName photoUrl' })
-      .sort({ appointmentAt: -1 });
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit, 20, 100);
+    const filter = { patient: req.userId };
 
-    return res.status(200).json({ appointments });
+    const [appointments, total] = await Promise.all([
+      Appointment.find(filter)
+        .populate({ path: 'doctor', select: 'firstName lastName specialist fee clinicName photoUrl' })
+        .sort({ appointmentAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Appointment.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      appointments,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch appointments', error: error.message });
   }
@@ -637,14 +669,28 @@ exports.cancelPatientAppointment = async (req, res) => {
 exports.getDoctorAppointments = async (req, res) => {
   try {
     const { status } = req.query;
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit, 20, 100);
     const filter = { doctor: req.userId };
     if (status) filter.status = status;
 
-    const appointments = await Appointment.find(filter)
-      .populate({ path: 'patient', select: 'firstName lastName age gender' })
-      .sort({ appointmentAt: 1 });
+    const [appointments, total] = await Promise.all([
+      Appointment.find(filter)
+        .populate({ path: 'patient', select: 'firstName lastName age gender' })
+        .sort({ appointmentAt: 1 })
+        .skip(skip)
+        .limit(limit),
+      Appointment.countDocuments(filter),
+    ]);
 
-    return res.status(200).json({ appointments });
+    return res.status(200).json({
+      appointments,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch appointments', error: error.message });
   }

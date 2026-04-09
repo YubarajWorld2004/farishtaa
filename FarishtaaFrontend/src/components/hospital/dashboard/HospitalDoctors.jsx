@@ -15,10 +15,11 @@ const HospitalDoctors = () => {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const doctorsListQuery = new URLSearchParams({ page: "1", limit: "100" }).toString();
 
   const fetchDoctors = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/hospital-dashboard/doctors`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/hospital-dashboard/doctors?${doctorsListQuery}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();

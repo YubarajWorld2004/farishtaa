@@ -2,6 +2,22 @@ const User = require('../model/User');
 const Reviews = require('../model/Reviews');
 const bcrypt = require('bcryptjs');
 
+const parsePagination = (pageValue, limitValue, defaultLimit = 20, maxLimit = 100) => {
+  const parsedPage = Number.parseInt(pageValue, 10);
+  const parsedLimit = Number.parseInt(limitValue, 10);
+
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+    ? Math.min(parsedLimit, maxLimit)
+    : defaultLimit;
+
+  return {
+    page,
+    limit,
+    skip: (page - 1) * limit,
+  };
+};
+
 // GET /api/hospital-dashboard/profile
 exports.getHospitalProfile = async (req, res) => {
   try {
@@ -86,19 +102,40 @@ exports.getHospitalStats = async (req, res) => {
 // GET /api/hospital-dashboard/doctors
 exports.getDoctors = async (req, res) => {
   try {
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit, 20, 100);
     const hospital = await User.findById(req.userId)
-      .select('doctors')
+      .select('doctors');
+
+    if (!hospital) {
+      return res.status(404).json({ message: 'Hospital not found' });
+    }
+
+    const doctorIds = Array.isArray(hospital.doctors) ? hospital.doctors : [];
+    const total = doctorIds.length;
+    const pagedDoctorIds = doctorIds.slice(skip, skip + limit);
+
+    const doctors = await User.find({ _id: { $in: pagedDoctorIds } })
+      .select('-password -chats')
       .populate({
-        path: 'doctors',
-        select: '-password -chats',
-        populate: {
-          path: 'doctorReviews',
-          select: 'rating review createdAt',
-          populate: { path: 'patientId', select: 'firstName lastName' },
-        },
+        path: 'doctorReviews',
+        select: 'rating review createdAt',
+        populate: { path: 'patientId', select: 'firstName lastName' },
       });
 
-    return res.status(200).json({ doctors: hospital?.doctors || [] });
+    const doctorById = new Map(doctors.map((doctor) => [String(doctor._id), doctor]));
+    const orderedDoctors = pagedDoctorIds
+      .map((doctorId) => doctorById.get(String(doctorId)))
+      .filter(Boolean);
+
+    return res.status(200).json({
+      doctors: orderedDoctors,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: 'Error fetching doctors', error: err.message });
   }
@@ -210,12 +247,28 @@ exports.getDoctorDetail = async (req, res) => {
 exports.getDoctorReviews = async (req, res) => {
   try {
     const { doctorId } = req.params;
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit, 20, 100);
 
-    const reviews = await Reviews.find({ targetId: doctorId, targetModel: 'Doctor' })
-      .sort({ createdAt: -1 })
-      .populate('patientId', 'firstName lastName');
+    const filter = { targetId: doctorId, targetModel: 'Doctor' };
 
-    return res.status(200).json({ reviews });
+    const [reviews, total] = await Promise.all([
+      Reviews.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('patientId', 'firstName lastName'),
+      Reviews.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      reviews,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: 'Error fetching reviews', error: err.message });
   }

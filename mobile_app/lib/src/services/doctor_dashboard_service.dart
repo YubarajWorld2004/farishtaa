@@ -13,6 +13,24 @@ class DoctorDashboardService {
 
   final ApiClient _apiClient;
 
+  String _withPagination(
+    String path, {
+    required int page,
+    required int limit,
+  }) {
+    final safePage = page < 1 ? 1 : page;
+    final safeLimit = limit < 1 ? 1 : limit;
+    final query = Uri(queryParameters: <String, String>{
+      'page': '$safePage',
+      'limit': '$safeLimit',
+    }).query;
+
+    if (path.contains('?')) {
+      return '$path&$query';
+    }
+    return '$path?$query';
+  }
+
   Future<DoctorDashboardProfile> getProfile({required String token}) async {
     final response = await _apiClient.get(
       '/api/doctor-dashboard/profile',
@@ -43,9 +61,11 @@ class DoctorDashboardService {
 
   Future<List<DoctorDashboardReview>> getReviews({
     required String token,
+    int page = 1,
+    int limit = 50,
   }) async {
     final response = await _apiClient.get(
-      '/api/doctor-dashboard/reviews',
+      _withPagination('/api/doctor-dashboard/reviews', page: page, limit: limit),
       token: token,
     );
 
@@ -63,13 +83,18 @@ class DoctorDashboardService {
   Future<List<AppointmentModel>> getAppointments({
     required String token,
     String? status,
+    int page = 1,
+    int limit = 50,
   }) async {
-    String path = '/api/doctor-dashboard/appointments';
+    final queryParams = <String, String>{
+      'page': '${page < 1 ? 1 : page}',
+      'limit': '${limit < 1 ? 1 : limit}',
+    };
     if (status != null && status.isNotEmpty) {
-      final encoded = Uri.encodeQueryComponent(status);
-      path = '$path?status=$encoded';
+      queryParams['status'] = status;
     }
 
+    final path = '/api/doctor-dashboard/appointments?${Uri(queryParameters: queryParams).query}';
     final response = await _apiClient.get(path, token: token);
     final appointmentsRaw = response['appointments'];
 
@@ -112,9 +137,11 @@ class DoctorDashboardService {
 
   Future<List<TelemedicineSessionModel>> getTelemedicineSessions({
     required String token,
+    int page = 1,
+    int limit = 50,
   }) async {
     final response = await _apiClient.get(
-      '/api/doctor-dashboard/telemedicine/sessions',
+      _withPagination('/api/doctor-dashboard/telemedicine/sessions', page: page, limit: limit),
       token: token,
     );
 
@@ -132,10 +159,16 @@ class DoctorDashboardService {
   Future<List<TelemedicineMessageModel>> getTelemedicineMessages({
     required String token,
     required String sessionId,
+    int page = 1,
+    int limit = 200,
   }) async {
     final encoded = Uri.encodeComponent(sessionId);
     final response = await _apiClient.get(
-      '/api/doctor-dashboard/telemedicine/sessions/$encoded/messages',
+      _withPagination(
+        '/api/doctor-dashboard/telemedicine/sessions/$encoded/messages',
+        page: page,
+        limit: limit,
+      ),
       token: token,
     );
 
@@ -175,9 +208,11 @@ class DoctorDashboardService {
 
   Future<List<PrescriptionModel>> getPrescriptions({
     required String token,
+    int page = 1,
+    int limit = 50,
   }) async {
     final response = await _apiClient.get(
-      '/api/doctor-dashboard/prescriptions',
+      _withPagination('/api/doctor-dashboard/prescriptions', page: page, limit: limit),
       token: token,
     );
 

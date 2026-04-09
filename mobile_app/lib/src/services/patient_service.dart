@@ -12,6 +12,24 @@ class PatientService {
 
   final ApiClient _apiClient;
 
+  String _withPagination(
+    String path, {
+    required int page,
+    required int limit,
+  }) {
+    final safePage = page < 1 ? 1 : page;
+    final safeLimit = limit < 1 ? 1 : limit;
+    final query = Uri(queryParameters: <String, String>{
+      'page': '$safePage',
+      'limit': '$safeLimit',
+    }).query;
+
+    if (path.contains('?')) {
+      return '$path&$query';
+    }
+    return '$path?$query';
+  }
+
   String _resolveSymptomLanguage(String language) {
     final normalized = language.trim().toLowerCase();
     switch (normalized) {
@@ -72,9 +90,11 @@ class PatientService {
   Future<List<ChatSessionModel>> getSessions({
     required String userId,
     required String token,
+    int page = 1,
+    int limit = 50,
   }) async {
     final response = await _apiClient.get(
-      '/api/patient/sessions/$userId',
+      _withPagination('/api/patient/sessions/$userId', page: page, limit: limit),
       token: token,
     );
 
@@ -221,9 +241,11 @@ class PatientService {
 
   Future<List<AppointmentModel>> getAppointments({
     required String token,
+    int page = 1,
+    int limit = 50,
   }) async {
     final response = await _apiClient.get(
-      '/api/patient/appointments',
+      _withPagination('/api/patient/appointments', page: page, limit: limit),
       token: token,
     );
     final appointmentsRaw = response['appointments'];
@@ -255,9 +277,11 @@ class PatientService {
 
   Future<List<TelemedicineSessionModel>> getTelemedicineSessions({
     required String token,
+    int page = 1,
+    int limit = 50,
   }) async {
     final response = await _apiClient.get(
-      '/api/patient/telemedicine/sessions',
+      _withPagination('/api/patient/telemedicine/sessions', page: page, limit: limit),
       token: token,
     );
 
@@ -274,10 +298,16 @@ class PatientService {
   Future<List<TelemedicineMessageModel>> getTelemedicineMessages({
     required String token,
     required String sessionId,
+    int page = 1,
+    int limit = 200,
   }) async {
     final encoded = Uri.encodeComponent(sessionId);
     final response = await _apiClient.get(
-      '/api/patient/telemedicine/sessions/$encoded/messages',
+      _withPagination(
+        '/api/patient/telemedicine/sessions/$encoded/messages',
+        page: page,
+        limit: limit,
+      ),
       token: token,
     );
 
@@ -315,9 +345,11 @@ class PatientService {
 
   Future<List<PrescriptionModel>> getPrescriptions({
     required String token,
+    int page = 1,
+    int limit = 50,
   }) async {
     final response = await _apiClient.get(
-      '/api/patient/prescriptions',
+      _withPagination('/api/patient/prescriptions', page: page, limit: limit),
       token: token,
     );
     final prescriptionsRaw = response['prescriptions'];
@@ -446,9 +478,15 @@ class PatientService {
     required String userId,
     required String sessionId,
     required String token,
+    int page = 1,
+    int limit = 200,
   }) async {
     final response = await _apiClient.get(
-      '/api/patient/symptoms/$userId/$sessionId',
+      _withPagination(
+        '/api/patient/symptoms/$userId/$sessionId',
+        page: page,
+        limit: limit,
+      ),
       token: token,
     );
 

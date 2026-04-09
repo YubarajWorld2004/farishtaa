@@ -20,6 +20,7 @@ const HospitalDoctorDetail = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("details"); // details | reviews
+  const reviewsQuery = new URLSearchParams({ page: "1", limit: "100" }).toString();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,7 +29,7 @@ const HospitalDoctorDetail = () => {
           fetch(`${import.meta.env.VITE_API_BASE_URL}/api/hospital-dashboard/doctors/${doctorId}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch(`${import.meta.env.VITE_API_BASE_URL}/api/hospital-dashboard/doctors/${doctorId}/reviews`, {
+          fetch(`${import.meta.env.VITE_API_BASE_URL}/api/hospital-dashboard/doctors/${doctorId}/reviews?${reviewsQuery}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);

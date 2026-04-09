@@ -17,6 +17,22 @@ const PATIENT_BLOCKED_APPOINTMENT_STATUSES = ['rejected', 'completed', 'cancelle
 const formatPersonName = (profile, fallback) =>
   `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() || fallback;
 
+const parsePagination = (pageValue, limitValue, defaultLimit = 20, maxLimit = 100) => {
+  const parsedPage = Number.parseInt(pageValue, 10);
+  const parsedLimit = Number.parseInt(limitValue, 10);
+
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+    ? Math.min(parsedLimit, maxLimit)
+    : defaultLimit;
+
+  return {
+    page,
+    limit,
+    skip: (page - 1) * limit,
+  };
+};
+
 const ensureSessionAccess = async (sessionId, userId, userType) => {
   const session = await TelemedicineSession.findById(sessionId).populate({
     path: 'appointment',
@@ -43,10 +59,18 @@ const ensureSessionAccess = async (sessionId, userId, userType) => {
 
 exports.getPatientTelemedicineSessions = async (req, res) => {
   try {
-    const sessions = await TelemedicineSession.find({ patient: req.userId })
-      .populate({ path: 'doctor', select: 'firstName lastName specialist photoUrl clinicName' })
-      .populate({ path: 'appointment', select: 'appointmentDate slotTime status' })
-      .sort({ lastMessageAt: -1, updatedAt: -1 });
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit, 20, 100);
+    const filter = { patient: req.userId };
+
+    const [sessions, total] = await Promise.all([
+      TelemedicineSession.find(filter)
+        .populate({ path: 'doctor', select: 'firstName lastName specialist photoUrl clinicName' })
+        .populate({ path: 'appointment', select: 'appointmentDate slotTime status' })
+        .sort({ lastMessageAt: -1, updatedAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      TelemedicineSession.countDocuments(filter),
+    ]);
 
     const filtered = sessions.filter((session) => {
       const appointmentStatus = session.appointment?.status;
@@ -55,7 +79,15 @@ exports.getPatientTelemedicineSessions = async (req, res) => {
       return true;
     });
 
-    return res.status(200).json({ sessions: filtered });
+    return res.status(200).json({
+      sessions: filtered,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch sessions', error: error.message });
   }
@@ -63,12 +95,28 @@ exports.getPatientTelemedicineSessions = async (req, res) => {
 
 exports.getDoctorTelemedicineSessions = async (req, res) => {
   try {
-    const sessions = await TelemedicineSession.find({ doctor: req.userId })
-      .populate({ path: 'patient', select: 'firstName lastName age gender' })
-      .populate({ path: 'appointment', select: 'appointmentDate slotTime status' })
-      .sort({ lastMessageAt: -1, updatedAt: -1 });
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit, 20, 100);
+    const filter = { doctor: req.userId };
 
-    return res.status(200).json({ sessions });
+    const [sessions, total] = await Promise.all([
+      TelemedicineSession.find(filter)
+        .populate({ path: 'patient', select: 'firstName lastName age gender' })
+        .populate({ path: 'appointment', select: 'appointmentDate slotTime status' })
+        .sort({ lastMessageAt: -1, updatedAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      TelemedicineSession.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      sessions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch sessions', error: error.message });
   }
@@ -77,17 +125,32 @@ exports.getDoctorTelemedicineSessions = async (req, res) => {
 exports.getPatientTelemedicineMessages = async (req, res) => {
   try {
     const { sessionId } = req.params;
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit, 50, 200);
     const access = await ensureSessionAccess(sessionId, req.userId, 'Patient');
 
     if (access.error) {
       return res.status(access.status).json({ message: access.error });
     }
 
-    const messages = await TelemedicineMessage.find({ session: sessionId })
-      .populate({ path: 'sender', select: 'firstName lastName userType' })
-      .sort({ createdAt: 1 });
+    const filter = { session: sessionId };
+    const [messages, total] = await Promise.all([
+      TelemedicineMessage.find(filter)
+        .populate({ path: 'sender', select: 'firstName lastName userType' })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      TelemedicineMessage.countDocuments(filter),
+    ]);
 
-    return res.status(200).json({ messages });
+    return res.status(200).json({
+      messages: messages.reverse(),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch messages', error: error.message });
   }
@@ -96,17 +159,32 @@ exports.getPatientTelemedicineMessages = async (req, res) => {
 exports.getDoctorTelemedicineMessages = async (req, res) => {
   try {
     const { sessionId } = req.params;
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit, 50, 200);
     const access = await ensureSessionAccess(sessionId, req.userId, 'Doctor');
 
     if (access.error) {
       return res.status(access.status).json({ message: access.error });
     }
 
-    const messages = await TelemedicineMessage.find({ session: sessionId })
-      .populate({ path: 'sender', select: 'firstName lastName userType' })
-      .sort({ createdAt: 1 });
+    const filter = { session: sessionId };
+    const [messages, total] = await Promise.all([
+      TelemedicineMessage.find(filter)
+        .populate({ path: 'sender', select: 'firstName lastName userType' })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      TelemedicineMessage.countDocuments(filter),
+    ]);
 
-    return res.status(200).json({ messages });
+    return res.status(200).json({
+      messages: messages.reverse(),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch messages', error: error.message });
   }

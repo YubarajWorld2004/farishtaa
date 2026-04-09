@@ -4,6 +4,38 @@ const Reviews = require('../model/Reviews');
 const User = require('../model/User');
 const specialistsName=require('../utils/specialistsName');
 
+const OSM_SYNC_TTL_MS = 10 * 60 * 1000;
+const SEARCH_RESULT_LIMIT = 80;
+const OSM_SYNC_CACHE = new Map();
+
+const toFiniteNumber = (value) => {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const buildOsmCacheKey = (lat, lng, radius) =>
+  `${lat.toFixed(3)}:${lng.toFixed(3)}:${Math.round(radius / 500)}`;
+
+const parseNearbySearchInput = ({ lat, lng, radius }) => {
+  const parsedLat = toFiniteNumber(lat);
+  const parsedLng = toFiniteNumber(lng);
+  const parsedRadius = toFiniteNumber(radius ?? 15000);
+
+  if (parsedLat === null || parsedLng === null || parsedRadius === null) {
+    return null;
+  }
+
+  if (parsedLat < -90 || parsedLat > 90 || parsedLng < -180 || parsedLng > 180) {
+    return null;
+  }
+
+  return {
+    lat: parsedLat,
+    lng: parsedLng,
+    radius: Math.max(1000, Math.min(parsedRadius, 30000)),
+  };
+};
+
 const normalizeSpecialistTerm = (value) =>
   String(value || '').trim().replace(/\s+/g, ' ');
 
@@ -49,19 +81,29 @@ exports.searchNearbyBySpecialist=async (req,res,next)=>{
  const {category}=req.params;
  if(!category || typeof(category)!== "string")
     return res.status(400).json({message : "Type Error : not string"})
- const {lat,lng,radius=15000}=req.body;
+ const nearbyInput = parseNearbySearchInput(req.body || {});
+ if(!nearbyInput)
+  return res.status(400).json({message : "Invalid lat/lng/radius"})
+
+ const { lat, lng, radius } = nearbyInput;
 const specialistRegex=createSpecialistRegex(category);
 if(!specialistRegex)
   return res.status(400).json({message : "Type Error : invalid specialist"})
-const doctorsNearby=await findDoctorsNearby(lat,lng,specialistRegex,radius);
-const hospitalsNearby=await findHospitalsNearby(lat,lng,specialistRegex,radius);
-const userDoctorsNearby=await findUserDoctorsNearby(lat,lng,specialistRegex,radius);
+
+const [doctorsNearby, hospitalsNearby, userDoctorsNearby] = await Promise.all([
+  findDoctorsNearby(lat,lng,specialistRegex,radius),
+  findHospitalsNearby(lat,lng,specialistRegex,radius),
+  findUserDoctorsNearby(lat,lng,specialistRegex,radius),
+]);
 const storedResults=[...doctorsNearby,...hospitalsNearby,...userDoctorsNearby];
  res.status(200).json({data : storedResults});
- 
-loadFromOsm(lat,lng,radius);
+
+loadFromOsm(lat,lng,radius).catch((error) => {
+  console.error('OSM sync failed:', error.message);
+});
  }catch(error){
-    console.log("Error : ",error);
+    console.error('Nearby specialist search failed:', error.message);
+    return res.status(500).json({ message: 'Failed to search nearby specialists' });
  }
 }
 
@@ -80,6 +122,7 @@ location : {
     },
 }
 })
+  .limit(SEARCH_RESULT_LIMIT);
 }
 
 const findUserDoctorsNearby=async (lat,lng,specialistRegex,radius)=>{
@@ -93,7 +136,8 @@ const findUserDoctorsNearby=async (lat,lng,specialistRegex,radius)=>{
         $maxDistance: radius,
       },
     },
-  }, 'firstName lastName specialist experience degree languages address about photoUrl location mapLink fee clinicName doctorReviews availability');
+  }, 'firstName lastName specialist experience degree languages address about photoUrl location mapLink fee clinicName doctorReviews availability')
+    .limit(SEARCH_RESULT_LIMIT);
   // Map to match Doctor model shape so frontend works seamlessly
   return users.map(u => ({
     _id: u._id,
@@ -116,48 +160,67 @@ const findUserDoctorsNearby=async (lat,lng,specialistRegex,radius)=>{
   }));
 }
 const loadFromOsm = async (lat, lng, radius) => {
+  const cacheKey = buildOsmCacheKey(lat, lng, radius);
+  const now = Date.now();
+  const lastSyncedAt = OSM_SYNC_CACHE.get(cacheKey);
+  if (lastSyncedAt && now - lastSyncedAt < OSM_SYNC_TTL_MS) {
+    return;
+  }
+
+  OSM_SYNC_CACHE.set(cacheKey, now);
+
   try {
     const fetchedHospitals = await fetchDatafromOSM(lat, lng, radius);
     if (!Array.isArray(fetchedHospitals) || fetchedHospitals.length === 0) {
-      console.log("No Hospitals Found nearby");
       return;
     }
 
+    const operations = [];
+
     for (const place of fetchedHospitals) {
       if (!place?.tags?.name) continue;
+      const placeLat = toFiniteNumber(place.lat);
+      const placeLon = toFiniteNumber(place.lon);
+      if (placeLat === null || placeLon === null) continue;
 
       let specialists = [];
       const detectedSpecialists = specialistsName.detectSpecialistsFromName(place.tags.name);
       specialists = [...new Set([...detectedSpecialists])];
 
-      // Create hospital
-      const hospital = new Hospital({
-        name: place.tags.name || "Unknown",
-        type: place.tags.amenity || place.tags.healthcare || "doctor",
-        address: {
-          street: place.tags?.["addr:full"] || "",
-          district: place.tags?.["addr:district"] || "",
-          state: place.tags?.["addr:state"] || "",
-          postcode: place.tags?.["addr:postcode"] || "",
+      operations.push({
+        updateOne: {
+          filter: {
+            name: place.tags.name || 'Unknown',
+            'location.coordinates': [placeLon, placeLat],
+          },
+          update: {
+            $set: {
+              name: place.tags.name || 'Unknown',
+              type: place.tags.amenity || place.tags.healthcare || 'doctor',
+              address: {
+                street: place.tags?.['addr:full'] || '',
+                district: place.tags?.['addr:district'] || '',
+                state: place.tags?.['addr:state'] || '',
+                postcode: place.tags?.['addr:postcode'] || '',
+              },
+              location: {
+                type: 'Point',
+                coordinates: [placeLon, placeLat],
+              },
+              specialists,
+            },
+          },
+          upsert: true,
         },
-        location: {
-          type: "Point",
-          coordinates: [place.lon, place.lat],
-        },
-        specialists,
       });
+    }
 
-      await Hospital.findOneAndUpdate({
-        name : hospital.name,
-        "location.coordinates" : hospital.location.coordinates
-      },hospital,{
-        upsert : true,
-        new : true,
-      }
-    );
+    if (operations.length > 0) {
+      await Hospital.bulkWrite(operations, { ordered: false });
     }
   } catch (error) {
-    console.log(error);
+    OSM_SYNC_CACHE.delete(cacheKey);
+    throw error;
   }
 };
 
@@ -182,26 +245,33 @@ async function fetchDatafromOSM(lat,lng,radius){
         body: query,
     });
 
-    const data=await response.text();
-    return data.elements;
+    if (!response.ok) {
+      throw new Error(`OSM request failed with status ${response.status}`);
+    }
+
+    const data=await response.json();
+    return Array.isArray(data?.elements) ? data.elements : [];
 }
 
 
 const findHospitalsNearby=(lat,lng,specialistRegex,radius)=>{
-    return Hospital.aggregate([{
-   $geoNear : {
-    near :{
-        type :"Point",
-        coordinates : [lng,lat],
-    },
-    distanceField : "distance",
-    maxDistance : radius,
-    spherical : true,
-    query: {
-      specialists : {$regex : specialistRegex},
-    },
-   }
-}]);
+    return Hospital.aggregate([
+      {
+        $geoNear : {
+          near :{
+              type :"Point",
+              coordinates : [lng,lat],
+          },
+          distanceField : "distance",
+          maxDistance : radius,
+          spherical : true,
+          query: {
+            specialists : {$regex : specialistRegex},
+          },
+        }
+      },
+      { $limit: SEARCH_RESULT_LIMIT },
+    ]);
 }
 
 
@@ -274,7 +344,6 @@ exports.getDoctorById=async (req,res,next)=>{
     
    try{
     const {doctorId}=req.params;
-  console.log("Doctor Id : ", doctorId)
    let details;
    let sourceModel = null;
         details=await Doctor.findById(doctorId).populate({

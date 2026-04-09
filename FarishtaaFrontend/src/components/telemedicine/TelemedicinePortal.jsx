@@ -66,10 +66,13 @@ const TelemedicinePortal = () => {
     return `${import.meta.env.VITE_API_BASE_URL}/api/patient`;
   }, [isDoctor]);
 
+  const sessionsQuery = new URLSearchParams({ page: "1", limit: "100" }).toString();
+  const messagesQuery = new URLSearchParams({ page: "1", limit: "200" }).toString();
+
   const fetchSessions = async () => {
     try {
       setLoadingSessions(true);
-      const res = await fetch(`${basePath}/telemedicine/sessions`, {
+      const res = await fetch(`${basePath}/telemedicine/sessions?${sessionsQuery}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -111,7 +114,7 @@ const TelemedicinePortal = () => {
       if (!silent) {
         setLoadingMessages(true);
       }
-      const res = await fetch(`${basePath}/telemedicine/sessions/${sessionId}/messages`, {
+      const res = await fetch(`${basePath}/telemedicine/sessions/${sessionId}/messages?${messagesQuery}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

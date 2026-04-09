@@ -100,12 +100,14 @@ const DoctorAppointments = () => {
   const [fetchError, setFetchError] = useState("");
   const [selectedPaymentAppointment, setSelectedPaymentAppointment] = useState(null);
 
+  const listQuery = new URLSearchParams({ page: "1", limit: "100" }).toString();
+
   const fetchAppointments = async () => {
     try {
       setLoading(true);
       setFetchError("");
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/doctor-dashboard/appointments`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/doctor-dashboard/appointments?${listQuery}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

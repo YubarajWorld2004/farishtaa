@@ -13,4 +13,6 @@ chatSessionSchema.pre('save', function (next) {
   next();
 });
 
+chatSessionSchema.index({ user: 1, updatedAt: -1 });
+
 module.exports = mongoose.model('ChatSession', chatSessionSchema);

@@ -1,6 +1,22 @@
 const User = require('../model/User');
 const Reviews = require('../model/Reviews');
 
+const parsePagination = (pageValue, limitValue, defaultLimit = 20, maxLimit = 100) => {
+  const parsedPage = Number.parseInt(pageValue, 10);
+  const parsedLimit = Number.parseInt(limitValue, 10);
+
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+    ? Math.min(parsedLimit, maxLimit)
+    : defaultLimit;
+
+  return {
+    page,
+    limit,
+    skip: (page - 1) * limit,
+  };
+};
+
 // GET /api/doctor-dashboard/profile
 exports.getDoctorProfile = async (req, res) => {
   try {
@@ -90,14 +106,27 @@ exports.getDoctorStats = async (req, res) => {
 // GET /api/doctor-dashboard/reviews
 exports.getDoctorReviews = async (req, res) => {
   try {
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit, 20, 100);
     const doctor = await User.findById(req.userId).select('doctorReviews');
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    const reviewIds = doctor.doctorReviews || [];
+    const total = reviewIds.length;
 
-    const reviews = await Reviews.find({ _id: { $in: doctor.doctorReviews || [] } })
+    const reviews = await Reviews.find({ _id: { $in: reviewIds } })
       .populate({ path: 'patientId', select: 'firstName lastName' })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    return res.status(200).json({ reviews });
+    return res.status(200).json({
+      reviews,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: 'Error fetching reviews', error: err.message });
   }

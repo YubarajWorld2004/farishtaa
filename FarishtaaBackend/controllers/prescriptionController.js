@@ -40,6 +40,22 @@ const buildFileObject = (file) => {
   };
 };
 
+const parsePagination = (pageValue, limitValue, defaultLimit = 20, maxLimit = 100) => {
+  const parsedPage = Number.parseInt(pageValue, 10);
+  const parsedLimit = Number.parseInt(limitValue, 10);
+
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+    ? Math.min(parsedLimit, maxLimit)
+    : defaultLimit;
+
+  return {
+    page,
+    limit,
+    skip: (page - 1) * limit,
+  };
+};
+
 exports.createPrescription = async (req, res) => {
   try {
     const doctorId = req.userId;
@@ -97,12 +113,28 @@ exports.createPrescription = async (req, res) => {
 
 exports.getPatientPrescriptions = async (req, res) => {
   try {
-    const prescriptions = await Prescription.find({ patient: req.userId })
-      .populate({ path: 'doctor', select: 'firstName lastName specialist clinicName' })
-      .populate({ path: 'appointment', select: 'appointmentDate slotTime status' })
-      .sort({ issuedAt: -1 });
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit, 20, 100);
+    const filter = { patient: req.userId };
 
-    return res.status(200).json({ prescriptions });
+    const [prescriptions, total] = await Promise.all([
+      Prescription.find(filter)
+        .populate({ path: 'doctor', select: 'firstName lastName specialist clinicName' })
+        .populate({ path: 'appointment', select: 'appointmentDate slotTime status' })
+        .sort({ issuedAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Prescription.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      prescriptions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch prescriptions', error: error.message });
   }
@@ -129,12 +161,28 @@ exports.getPatientPrescriptionById = async (req, res) => {
 
 exports.getDoctorPrescriptions = async (req, res) => {
   try {
-    const prescriptions = await Prescription.find({ doctor: req.userId })
-      .populate({ path: 'patient', select: 'firstName lastName age gender' })
-      .populate({ path: 'appointment', select: 'appointmentDate slotTime status' })
-      .sort({ issuedAt: -1 });
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit, 20, 100);
+    const filter = { doctor: req.userId };
 
-    return res.status(200).json({ prescriptions });
+    const [prescriptions, total] = await Promise.all([
+      Prescription.find(filter)
+        .populate({ path: 'patient', select: 'firstName lastName age gender' })
+        .populate({ path: 'appointment', select: 'appointmentDate slotTime status' })
+        .sort({ issuedAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Prescription.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      prescriptions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch prescriptions', error: error.message });
   }

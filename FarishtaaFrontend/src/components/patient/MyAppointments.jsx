@@ -97,11 +97,13 @@ const MyAppointments = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPaymentAppointment, setSelectedPaymentAppointment] = useState(null);
 
+  const listQuery = new URLSearchParams({ page: "1", limit: "100" }).toString();
+
   const fetchAppointments = async () => {
     try {
       setLoading(true);
       setError("");
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/patient/appointments`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/patient/appointments?${listQuery}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

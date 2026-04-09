@@ -6,11 +6,12 @@ const DoctorReviews = () => {
   const { token } = useSelector((state) => state.auth);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const listQuery = new URLSearchParams({ page: "1", limit: "100" }).toString();
 
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/doctor-dashboard/reviews`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/doctor-dashboard/reviews?${listQuery}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

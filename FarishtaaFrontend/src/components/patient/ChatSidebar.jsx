@@ -20,6 +20,7 @@ const ChatSidebar = () => {
 
   const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
   const [hoveredId, setHoveredId] = useState(null);
+  const sessionsListQuery = new URLSearchParams({ page: "1", limit: "100" }).toString();
 
   /* ---- fetch sessions on mount ---- */
   useEffect(() => {
@@ -28,7 +29,7 @@ const ChatSidebar = () => {
     const fetchSessions = async () => {
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/patient/sessions/${userId}`,
+          `${import.meta.env.VITE_API_BASE_URL}/api/patient/sessions/${userId}?${sessionsListQuery}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!res.ok) {

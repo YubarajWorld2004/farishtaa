@@ -6,6 +6,24 @@ class HospitalDashboardService {
 
   final ApiClient _apiClient;
 
+  String _withPagination(
+    String path, {
+    required int page,
+    required int limit,
+  }) {
+    final safePage = page < 1 ? 1 : page;
+    final safeLimit = limit < 1 ? 1 : limit;
+    final query = Uri(queryParameters: <String, String>{
+      'page': '$safePage',
+      'limit': '$safeLimit',
+    }).query;
+
+    if (path.contains('?')) {
+      return '$path&$query';
+    }
+    return '$path?$query';
+  }
+
   Future<HospitalProfileModel> getProfile({required String token}) async {
     final response = await _apiClient.get(
       '/api/hospital-dashboard/profile',
@@ -34,9 +52,13 @@ class HospitalDashboardService {
     return HospitalStatsModel.fromJson(response);
   }
 
-  Future<List<HospitalDoctorModel>> getDoctors({required String token}) async {
+  Future<List<HospitalDoctorModel>> getDoctors({
+    required String token,
+    int page = 1,
+    int limit = 50,
+  }) async {
     final response = await _apiClient.get(
-      '/api/hospital-dashboard/doctors',
+      _withPagination('/api/hospital-dashboard/doctors', page: page, limit: limit),
       token: token,
     );
 
@@ -101,10 +123,16 @@ class HospitalDashboardService {
   Future<List<HospitalDoctorReview>> getDoctorReviews({
     required String token,
     required String doctorId,
+    int page = 1,
+    int limit = 50,
   }) async {
     final encoded = Uri.encodeComponent(doctorId);
     final response = await _apiClient.get(
-      '/api/hospital-dashboard/doctors/$encoded/reviews',
+      _withPagination(
+        '/api/hospital-dashboard/doctors/$encoded/reviews',
+        page: page,
+        limit: limit,
+      ),
       token: token,
     );
 

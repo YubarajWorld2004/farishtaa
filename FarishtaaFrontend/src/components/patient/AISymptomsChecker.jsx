@@ -37,6 +37,7 @@ const AISymptomsChecker = () => {
 
   const [listening, setListening] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const chatsListQuery = new URLSearchParams({ page: "1", limit: "200" }).toString();
 
   const hasSession = !!sessionId;
 
@@ -82,7 +83,7 @@ const AISymptomsChecker = () => {
       try {
         dispatch(setLoading(true));
         const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/patient/symptoms/${userId}/${sessionId}`,
+          `${import.meta.env.VITE_API_BASE_URL}/api/patient/symptoms/${userId}/${sessionId}?${chatsListQuery}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

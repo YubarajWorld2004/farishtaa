@@ -12,5 +12,8 @@ createdAt : {type : Date , default : Date.now},
 
 });
 
+reviewSchema.index({ targetModel: 1, targetId: 1, createdAt: -1 });
+reviewSchema.index({ patientId: 1, createdAt: -1 });
+
 
 module.exports=mongoose.model('Review',reviewSchema);

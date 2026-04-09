@@ -1,4 +1,3 @@
-
 const jwt=require('jsonwebtoken');
 
 exports.isLoggedIn=(req,res,next)=>{
@@ -11,10 +10,8 @@ exports.isLoggedIn=(req,res,next)=>{
         if (!token) return res.status(401).json({ error: 'Unauthorized: missing token' });
 
         const { userId, userType } = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(userId,userType);
         req.userId = userId;
         req.userType = userType;
-        console.log(req.body);
         return next();
     } catch (error) {
         return res.status(401).json({ error: 'Unauthorized' });

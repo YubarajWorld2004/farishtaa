@@ -50,6 +50,8 @@ doctors : [{type : mongoose.Schema.Types.ObjectId, ref : 'User'}]
 });
 
 userSchema.index({location : "2dsphere"});
+userSchema.index({ userType: 1, profileCompleted: 1, specialist: 1 });
+userSchema.index({ userType: 1, addedByHospital: 1 });
 
 module.exports=mongoose.model('User',userSchema);
 

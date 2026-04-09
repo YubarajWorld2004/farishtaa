@@ -165,10 +165,17 @@ const PrescriptionCenter = () => {
     ? `${import.meta.env.VITE_API_BASE_URL}/api/doctor-dashboard`
     : `${import.meta.env.VITE_API_BASE_URL}/api/patient`;
 
+  const prescriptionListQuery = new URLSearchParams({ page: "1", limit: "100" }).toString();
+  const acceptedAppointmentsQuery = new URLSearchParams({
+    status: "accepted",
+    page: "1",
+    limit: "100",
+  }).toString();
+
   const fetchPrescriptions = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${basePath}/prescriptions`, {
+      const res = await fetch(`${basePath}/prescriptions?${prescriptionListQuery}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -185,7 +192,7 @@ const PrescriptionCenter = () => {
     if (!isDoctor) return;
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/doctor-dashboard/appointments?status=accepted`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/doctor-dashboard/appointments?${acceptedAppointmentsQuery}`,
         {
         headers: { Authorization: `Bearer ${token}` },
         }
